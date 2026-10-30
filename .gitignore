@@ -1,0 +1,23 @@
+# Secrets and local OAuth client config
+.env
+.env.*
+!.env.example
+client_secret*.json
+*-credentials.json
+*-oauth*.json
+secrets/
+config/client.json
+
+# Build / IDE
+bin/
+dist/
+*.exe
+/soundsync
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Playwright MCP session artifacts
+.playwright-mcp/
