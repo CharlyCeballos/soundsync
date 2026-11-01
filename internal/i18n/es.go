@@ -26,6 +26,7 @@ var es = map[string]string{
 	// config_cmd.go
 	"Inspect local configuration":                          "Revisar la configuración local",
 	"Validate the .env file without showing secret values": "Validar el archivo .env sin mostrar valores secretos",
+
 	"Config: %s\n\n":           "Configuración: %s\n\n",
 	"Problems:":                "Problemas:",
 	"configuration is invalid": "la configuración no es válida",
