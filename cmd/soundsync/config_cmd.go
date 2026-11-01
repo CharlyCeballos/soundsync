@@ -39,7 +39,11 @@ func runConfigCheck(out io.Writer, envFile string) error {
 	if !loaded {
 		source = envFile + " (not found, using environment only)"
 	}
-	fmt.Fprintf(out, i18n.T("Config: %s\n\n"), source)
+	fmt.Fprintf(out, i18n.T("Config: %s\n"), source)
+	if dir := defaultConfigDir(); !loaded && dir != "" {
+		fmt.Fprintf(out, i18n.T("Soundsync looks for .env in the current folder, then in %s; --env-file picks another file.\n"), dir)
+	}
+	fmt.Fprintln(out)
 
 	cfg, cfgErr := config.FromEnv(os.Getenv)
 

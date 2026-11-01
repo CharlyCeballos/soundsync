@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -35,6 +36,7 @@ func newShellCmd(a *app) *cobra.Command {
 func runShell(a *app, in io.Reader, out, errOut io.Writer) error {
 	fmt.Fprintln(out, i18n.T("Soundsync shell. Each service asks for a browser login on first use;"))
 	fmt.Fprintln(out, i18n.T("tokens stay in memory until you type 'exit'. Type 'help' for commands."))
+	checkForUpdate(a.baseCtx, out, http.DefaultClient, latestReleaseURL, version)
 
 	// Ctrl+C while a command runs cancels that command (see command()).
 	// At the prompt it only reminds the user how to leave, so the shell

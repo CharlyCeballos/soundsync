@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -78,9 +79,10 @@ type youtubeSession struct {
 
 func newApp() *app {
 	stdin := bufio.NewReader(os.Stdin)
+	configDir := defaultConfigDir()
 	return &app{
-		envFile:   ".env",
-		configDir: defaultConfigDir(),
+		envFile:   defaultEnvFile(configDir),
+		configDir: configDir,
 		baseCtx:   context.Background(),
 		readLine: func() (string, error) {
 			line, err := stdin.ReadString('\n')
@@ -92,6 +94,17 @@ func newApp() *app {
 		newSpotify: loginSpotify,
 		newYouTube: loginYouTube,
 	}
+}
+
+// defaultEnvFile prefers .env in the current folder (running from a clone)
+// and falls back to the user's config folder, where an installed binary
+// looks for it.
+func defaultEnvFile(configDir string) string {
+	const name = ".env"
+	if _, err := os.Stat(name); err == nil || configDir == "" {
+		return name
+	}
+	return filepath.Join(configDir, name)
 }
 
 // confirm asks a yes/no question; anything but an explicit yes means no,

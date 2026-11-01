@@ -27,7 +27,8 @@ var es = map[string]string{
 	"Inspect local configuration":                          "Revisar la configuración local",
 	"Validate the .env file without showing secret values": "Validar el archivo .env sin mostrar valores secretos",
 
-	"Config: %s\n\n":           "Configuración: %s\n\n",
+	"Config: %s\n": "Configuración: %s\n",
+	"Soundsync looks for .env in the current folder, then in %s; --env-file picks another file.\n": "Soundsync busca .env en la carpeta actual y luego en %s; --env-file elige otro archivo.\n",
 	"Problems:":                "Problemas:",
 	"configuration is invalid": "la configuración no es válida",
 	"OK":                       "OK",
@@ -98,6 +99,10 @@ quieras en https://myaccount.google.com/permissions.
 	"%q belongs to another user: Spotify does not let Development Mode apps read it":                      "%q es de otro usuario: Spotify no deja que las apps en Development Mode la lean",
 	"\ntip: each argument is one playlist; quote names with spaces, e.g. \"The Way to My Favorite Part\"": "\ntip: cada argumento es una playlist; pon entre comillas los nombres con espacios, p. ej. \"The Way to My Favorite Part\"",
 	"Print the Soundsync version":                                                                         "Mostrar la versión de Soundsync",
+
+	// update.go
+	"could not check for a newer version: %v\n":              "no se pudo revisar si hay una versión nueva: %v\n",
+	"A newer Soundsync is available: %s (you have %s): %s\n": "Hay una versión nueva de Soundsync: %s (tienes %s): %s\n",
 
 	// spotify_cmd.go
 	"Read your Spotify playlists (token kept in memory only)":                                                                           "Leer tus playlists de Spotify (token solo en memoria)",

@@ -43,6 +43,23 @@ func TestConfigCheckValidNeverPrintsSecrets(t *testing.T) {
 	}
 }
 
+func TestDefaultEnvFile(t *testing.T) {
+	t.Chdir(t.TempDir())
+	configDir := filepath.Join("home", "soundsync")
+	if got, want := defaultEnvFile(configDir), filepath.Join(configDir, ".env"); got != want {
+		t.Errorf("no ./.env: got %q, want %q", got, want)
+	}
+	if got := defaultEnvFile(""); got != ".env" {
+		t.Errorf("no config folder: got %q, want .env", got)
+	}
+	if err := os.WriteFile(".env", nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got := defaultEnvFile(configDir); got != ".env" {
+		t.Errorf("./.env present: got %q, want .env", got)
+	}
+}
+
 func TestConfigCheckMissingFile(t *testing.T) {
 	clearConfigEnv(t)
 	var out bytes.Buffer
@@ -51,7 +68,7 @@ func TestConfigCheckMissingFile(t *testing.T) {
 		t.Fatal("expected error with no config")
 	}
 	got := out.String()
-	for _, want := range []string{"not found", "SPOTIFY_CLIENT_ID is required", "GOOGLE_CLIENT_ID is required", "GOOGLE_CLIENT_SECRET is required"} {
+	for _, want := range []string{"not found", "looks for .env in the current folder", "SPOTIFY_CLIENT_ID is required", "GOOGLE_CLIENT_ID is required", "GOOGLE_CLIENT_SECRET is required"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("output missing %q:\n%s", want, got)
 		}
