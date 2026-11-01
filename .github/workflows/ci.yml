@@ -1,0 +1,35 @@
+# Tests without network: Spotify and YouTube are faked in the test suite (todo 2.11).
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: gofmt
+        if: runner.os == 'Linux'
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+      - run: go vet ./...
+      # The race detector needs cgo; the Linux runner has gcc ready.
+      - name: test (race)
+        if: runner.os == 'Linux'
+        run: go test -race ./...
+      - name: test
+        if: runner.os == 'Windows'
+        run: go test ./...
