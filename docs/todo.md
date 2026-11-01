@@ -7,7 +7,7 @@ Estado: `todo` | `doing` | `done` | `blocked`
 
 ## Ahora
 
-Fase 1 cerrada (GO 2026-10-30, `planV2.md` escrito 2026-11-01). **Fase 2 cerrada 2026-11-01** (autor): todos los ítems done; pruebas unit, integración, CI y reales en verde (solo T.7 sigue todo: sin playlists colaborativas). Sigue **fase 3**. Ya se puede re-correr `youtube add` sobre "The Way" y "Covers" (2.17 conserva la corrección manual; verificado en real 2026-11-01). Playlists privadas de prueba **"Soundsync test"** (Spotify: Bohemian Rhapsody, Billie Jean, Take on Me; YouTube: igual): pendiente que el autor las borre ahora que la fase cerró. Repo en `github.com/CharlyCeballos/soundsync` (aún PRIVATE, ver D.1).
+Fase 1 cerrada (GO 2026-10-30, `planV2.md` escrito 2026-11-01). **Fase 2 cerrada 2026-11-01** (autor): todos los ítems done; pruebas unit, integración, CI y reales en verde (solo T.7 sigue todo: sin playlists colaborativas). **Fase 3 en curso** (3.3, 3.5 done; 3.1/3.2 esperan el tag `v0.1.0`). Ya se puede re-correr `youtube add` sobre "The Way" y "Covers" (2.17 conserva la corrección manual; verificado en real 2026-11-01). Playlists privadas de prueba **"Soundsync test"** (Spotify: Bohemian Rhapsody, Billie Jean, Take on Me; YouTube: igual): pendiente que el autor las borre ahora que la fase cerró. Repo en `github.com/CharlyCeballos/soundsync` (aún PRIVATE, ver D.1).
 
 ### Para retomar
 
@@ -68,11 +68,11 @@ Fase 1 cerrada (GO 2026-10-30, `planV2.md` escrito 2026-11-01). **Fase 2 cerrada
 
 | ID | Item | Estado | Notas |
 |---|---|---|---|
-| 3.1 | GitHub Actions: Windows amd64 exe | todo | Unsigned |
-| 3.2 | GitHub Actions: `.deb` amd64 | todo | Debian y derivados |
-| 3.3 | README: build, OAuth, testers, SmartScreen | todo | ES + EN o README + README.es. Spotify: cada usuario trae su propio Client ID (BYO, no embebido en binario — Terms VI.1.2–VI.1.3), requiere Premium. No sugerir endorsement (Policy II.1); logo/ícono Soundsync sin parecido a Spotify (nada verde con ondas). Evitar logos Spotify + YouTube juntos (Design: no co-branding) |
+| 3.1 | GitHub Actions: Windows amd64 exe | doing | 2026-11-01. `.github/workflows/release.yml` (decisión autor: workflow propio, 0 deps): tag `vX.Y.Z` → `go vet` + `go test` → `CGO_ENABLED=0 -trimpath -X main.version=$TAG` → `soundsync_<ver>_windows_amd64.zip` (exe + LICENSE + `.env.example`) + `SHA256SUMS` → release **borrador** (`gh release create --draft`; el autor publica a mano). Tag por env, no interpolado; `contents: write` solo en ese job; mismas actions por SHA que `ci.yml`. Unsigned. Cross-compile local OK. Falta la 1ª corrida real (tag `v0.1.0`) |
+| 3.2 | GitHub Actions: `.deb` amd64 | doing | 2026-11-01. Mismo workflow: `dpkg-deb --root-owner-group` → `/usr/bin/soundsync`, `/usr/share/doc/soundsync/{copyright,env.example}`, `Recommends: xdg-utils` (login abre el navegador con `xdg-open`). Smoke en el runner: `dpkg -i` + `soundsync version` = tag. `.env` del binario instalado: `./.env` y si no existe `<UserConfigDir>/soundsync/.env` (decisión autor; `config check` dice cuál leyó). Falta la 1ª corrida real |
+| 3.3 | README: build, OAuth, testers, SmartScreen | done | 2026-11-01, decisión autor: `README.md` (EN) + `README.es.md`. Para usuarios: requisitos BYO, instalar (zip + SmartScreen, `apt install ./….deb`, `SHA256SUMS`), dónde va `.env`, comandos, matching, quota, privacidad, scopes, compilar. Aviso de no afiliación, sin logos. `docs/setup.md` dice dónde crear `.env`. Requisitos de origen: ES + EN o README + README.es. Spotify: cada usuario trae su propio Client ID (BYO, no embebido en binario — Terms VI.1.2–VI.1.3), requiere Premium. No sugerir endorsement (Policy II.1); logo/ícono Soundsync sin parecido a Spotify (nada verde con ondas). Evitar logos Spotify + YouTube juntos (Design: no co-branding) |
 | 3.4 | LICENSE | done | MIT, 2026-11-01 |
-| 3.5 | Aviso de versión nueva al iniciar `shell` | todo | planV2 §9 (YT Policies III.B.1). GET GitHub Releases `latest`, imprime link si hay versión mayor. Sin descarga, sin datos del usuario, falla de red = una línea. `version == "dev"` no consulta. Requiere D.1 público |
+| 3.5 | Aviso de versión nueva al iniciar `shell` | done | 2026-11-01. `cmd/soundsync/update.go`: solo builds `vX.Y.Z` (`dev` no consulta), timeout 2 s, `User-Agent: soundsync/<ver>`, respuesta ≤1 MiB; versión mayor → una línea con link (solo si `html_url` es de este repo y el tag es semver: nada arbitrario a la terminal). **404 = silencio** (sin release publicado o repo privado); otro error = una línea. Tests con `httptest` (8 casos + dev). Real 2026-11-01 con build `v0.1.0`: GitHub 404 (privado) → shell sin aviso. Para terceros funciona cuando D.1 sea público. `PRIVACY.md`: GitHub ve IP + versión (sin subir la versión de la política: la aceptada ya anunciaba el chequeo) |
 
 ## Fase 4 — GUI (Wails v3 + React)
 
@@ -103,7 +103,7 @@ Fase 1 cerrada (GO 2026-10-30, `planV2.md` escrito 2026-11-01). **Fase 2 cerrada
 
 | ID | Item | Estado | Notas |
 |---|---|---|---|
-| D.1 | Repo GitHub público | doing | 2026-11-01: `github.com/CharlyCeballos/soundsync` creado y pusheado, module path actualizado, `.gitattributes` LF. Visibilidad **PRIVATE**: falta hacerlo público (requisito de D.4 y 3.5) |
+| D.1 | Repo GitHub público | doing | 2026-11-01: `github.com/CharlyCeballos/soundsync` creado y pusheado, module path actualizado, `.gitattributes` LF. Visibilidad **PRIVATE**: decisión autor 2026-11-01, **público después de la fase 4**. Historial revisado 2026-11-01: las credenciales reales del `.env` no aparecen en ningún commit (solo fixtures de test) |
 | D.2 | Release CLI Windows + deb | todo | Tras fase 3 |
 | D.3 | Release GUI msi + deb | todo | Tras fase 4 |
 | D.4 | Privacy policy URL (`PRIVACY.md` en repo público) | doing | 2026-11-01: `PRIVACY.md` escrito (usa YouTube API Services, qué lee/escribe/guarda, revocar, contacto) y enlazado desde README y el aviso de primer uso. El link solo funciona para terceros cuando el repo sea público (D.1) |
@@ -116,6 +116,7 @@ _Ninguno registrado._
 
 | Fecha | Qué |
 |---|---|
+| 2026-11-01 | Fase 3 arranca. Design doc `docs/specs/2026-11-01-phase3-packaging-design.md` aprobado. Decisiones del autor: `.env` actual → carpeta de usuario, tag → release borrador, README EN + ES, workflow propio sin deps, repo público después de fase 4. Hechos 3.3 y 3.5; 3.1/3.2 escritos, falta 1ª corrida real. |
 | 2026-11-01 | **Fase 2 cerrada** (decisión del autor). Sigue fase 3. |
 | 2026-11-01 | Pruebas hasta fase 2. Unit + integración verdes al 1er intento (gofmt, vet, 104 tests). CI falló por gofmt 1.26 vs 1.27 → fix `ca7c6cd`, verde al 2º (incl. `-race`). Reales en Chrome, 2 sesiones, verdes al 1er intento: logins Spotify + Google, listados, T.4, T.5, T.6, T.9, 2.10, 2.16, 2.18, 2.9, 2.14 (Google re-pidió consentimiento tras el revoke). Aviso de privacidad aceptado por el autor. Quota del día: ~123 units, 3 búsquedas. "Soundsync test" en Spotify ahora = Bohemian Rhapsody, Billie Jean, Take on Me. |
 | 2026-11-01 | Reinicio de la laptop a mitad de los commits: repo íntegro, commits rehechos. 2.18 variante segura (Topic propio + duración en 50 resultados) y 2.9 `--lang` hechos, cada uno en su commit. Extensión de Chrome desconectada tras el reinicio: sin pruebas reales con login desde entonces. |

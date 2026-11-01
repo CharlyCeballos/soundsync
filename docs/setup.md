@@ -7,6 +7,7 @@ Done once per user. Author's setup completed 2026-10-26.
 
 - Spotify **Premium** on the account that owns the Spotify app (Dev Mode requirement).
 - Use your normal browser. Google blocks sign-in in automated browsers (Playwright: “This browser or app may not be secure”).
+- Create your `.env` from `.env.example` (it ships in the Windows zip, in `/usr/share/doc/soundsync/env.example` with the Debian package, and in the repo). Soundsync reads `.env` from the current folder first, then from `%APPDATA%\soundsync\.env` on Windows or `~/.config/soundsync/.env` on Linux; `--env-file` points to any other file. Keep it readable only by you (`chmod 600` on Linux). The steps below fill it in.
 
 ## 1. Spotify app
 
@@ -42,6 +43,8 @@ Done once per user. Author's setup completed 2026-10-26.
 | `/auth/audience` | Testing, External, your Gmail as test user |
 | `/auth/scopes` | Only `youtube.force-ssl`, under sensitive |
 | `/auth/clients` | Desktop client; ID prefix matches `.env` |
+
+Then run `soundsync config check`: it says which `.env` it read and whether every value is set, without printing them.
 
 Final proof is the first login (todo 1.2 / 1.3). Typical Google errors:
 

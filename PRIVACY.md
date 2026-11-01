@@ -26,12 +26,13 @@ Only on your YouTube channel, and only after showing you a summary and getting y
 - **Nothing from Spotify or YouTube is saved on your computer.** Login tokens live in memory only and disappear when Soundsync exits. Matches found during a session are also kept in memory only.
 - One small file records that you accepted this policy, and which version: `%APPDATA%\soundsync\privacy-accepted` on Windows, `~/.config/soundsync/privacy-accepted` on Linux. It holds no personal data.
 - Reports are written to disk only when you ask for one, to the file you name.
+- Your `.env` file with your own Spotify and Google client IDs may live in that same folder. You create it; Soundsync only reads it.
 
 Soundsync identifies the YouTube playlists it manages by a line it writes in their description (`soundsync:spotify:<playlist ID>`). That line lives on YouTube, under your control: deleting it makes Soundsync forget the link.
 
 ## What Soundsync shares
 
-Soundsync talks only to Spotify (accounts.spotify.com, api.spotify.com) and Google (accounts.google.com, oauth2.googleapis.com, www.googleapis.com), and only to do what you ask. When update checks are added, they will contact GitHub to read the latest version number, without sending any data about you. There is no analytics, telemetry or advertising.
+Soundsync talks only to Spotify (accounts.spotify.com, api.spotify.com) and Google (accounts.google.com, oauth2.googleapis.com, www.googleapis.com), and only to do what you ask. When you open `soundsync shell`, a released build also asks GitHub (api.github.com) for the latest version number so it can tell you about updates; GitHub sees your IP address and your Soundsync version, nothing else about you. There is no analytics, telemetry or advertising.
 
 ## Revoking access and deleting data
 
