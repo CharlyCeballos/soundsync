@@ -9,12 +9,6 @@ import (
 	"github.com/CharlyCeballos/soundsync/internal/youtube"
 )
 
-// LengthTolerance is how far a video's length may be from the track's for
-// a video already in the playlist to count as that track. Album audio
-// ("- Topic") lands within a second; a music video with an intro may miss
-// and is then searched again, which costs a search but breaks nothing.
-const LengthTolerance = 5 * time.Second
-
 // CandidateVideos lists the IDs of playlist videos that look like one of
 // the tracks by title and artist; only those need a length check.
 func CandidateVideos(entries []spotify.Entry, items []youtube.Item) []string {
@@ -40,7 +34,7 @@ func PreMatch(entries []spotify.Entry, items []youtube.Item, lengths map[string]
 	claimed := map[string]bool{} // playlist item IDs
 	for _, e := range entries {
 		for _, it := range items {
-			if claimed[it.ID] || !looksLike(e.Track, it) || !sameLength(e.Track.DurationMS, lengths[it.VideoID]) {
+			if claimed[it.ID] || !looksLike(e.Track, it) || !match.SameLength(e.Track.DurationMS, lengths[it.VideoID]) {
 				continue
 			}
 			claimed[it.ID] = true
@@ -60,23 +54,10 @@ func PreMatch(entries []spotify.Entry, items []youtube.Item, lengths map[string]
 // or channel contains the first artist (spaces ignored, so "Ariana Grande"
 // matches the channel "ArianaGrandeVevo").
 func looksLike(t spotify.Track, it youtube.Item) bool {
-	core := coreTitle(t.Name)
-	if len([]rune(core)) < minCoreLen || len(t.Artists) == 0 {
+	core, ok := match.CoreTitle(t.Name)
+	if !ok || len(t.Artists) == 0 || !strings.Contains(strings.ToLower(it.Title), core) {
 		return false
 	}
-	if !strings.Contains(strings.ToLower(it.Title), core) {
-		return false
-	}
-	artist := squash(t.Artists[0])
-	return artist != "" && (strings.Contains(squash(it.Title), artist) || strings.Contains(squash(it.Channel), artist))
+	artist := match.Squash(t.Artists[0])
+	return artist != "" && (strings.Contains(match.Squash(it.Title), artist) || strings.Contains(match.Squash(it.Channel), artist))
 }
-
-func sameLength(trackMS int, video time.Duration) bool {
-	if trackMS <= 0 || video <= 0 {
-		return false
-	}
-	return (time.Duration(trackMS)*time.Millisecond - video).Abs() <= LengthTolerance
-}
-
-// squash lowercases and drops all whitespace.
-func squash(s string) string { return strings.Join(strings.Fields(strings.ToLower(s)), "") }

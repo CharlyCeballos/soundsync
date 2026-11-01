@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -433,4 +434,27 @@ func TestYouTubeCreateTwoPlaylistsOneExisting(t *testing.T) {
 		t.Fatalf("playlists created = %d, want 1 (Covers only)\n%s", yt.inserts, out)
 	}
 	mustContain(t, "stdout", out, "Already on YouTube as", "Go ahead?", `Created "Covers" (private).`)
+}
+
+// todo 2.18: the artist's own Topic deep in the results wins when its length
+// fits; otherwise only the top results are ranked, as before.
+func TestYouTubeAddFindsOwnTopicBeyondTopResults(t *testing.T) {
+	for _, c := range []struct {
+		length, want string
+	}{
+		{"PT3M38S", "cashTopic"}, // album length: the Topic upload wins
+		{"PT5M02S", "hurtV"},     // another recording: classic ranking over the top 5
+	} {
+		yt := newAddFake()
+		results := []map[string]any{video("hurtV", "Hurt", "JohnnyCashVEVO")}
+		for i := range 5 {
+			results = append(results, video(fmt.Sprintf("x%d", i), "Hurt cover", "Someone"))
+		}
+		yt.search["Johnny Cash Hurt"] = append(results, video("cashTopic", "Hurt", "Johnny Cash - Topic"))
+		yt.lengths["cashTopic"] = c.length
+		runLines(t, newTestApp(t, yt), "youtube add Covers -y", "exit")
+		if got := yt.videos("PLcov"); len(got) != 2 || got[1] != c.want {
+			t.Errorf("Topic length %s: videos = %v, want %s second", c.length, got, c.want)
+		}
+	}
 }

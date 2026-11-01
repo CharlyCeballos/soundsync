@@ -7,9 +7,15 @@ import (
 	"github.com/CharlyCeballos/soundsync/internal/youtube"
 )
 
-// SearchResults is how many results to request per track. search.list costs
-// the same for 1 or 50 results; a few give room to find an official upload.
-const SearchResults = 5
+// SearchResults is how many results to request per track: search.list costs
+// the same for 1 or 50. The artist's own Topic is looked for in all of them
+// (OwnTopics, with a length check); the classic ranking (Pick) only looks
+// at the first TopResults, because deeper results are often other songs,
+// covers or live versions (todo 2.18, measured on real searches).
+const (
+	SearchResults = 50
+	TopResults    = 5
+)
 
 // Reason explains why a video was chosen.
 type Reason string

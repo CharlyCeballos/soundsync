@@ -441,7 +441,10 @@ func searchAll(ctx context.Context, yc *youtube.Client, picks *sync.Map, entries
 		if err != nil {
 			return out, waiting, err
 		}
-		v, reason, ok := match.Pick(results)
+		v, reason, ok, err := pickBest(ctx, yc, e.Track, results)
+		if err != nil {
+			return out, waiting, err
+		}
 		m := transfer.Matched{Entry: e, Video: v, Reason: reason, Found: ok}
 		if ok {
 			picks.Store(q, m)
@@ -449,6 +452,29 @@ func searchAll(ctx context.Context, yc *youtube.Client, picks *sync.Map, entries
 		out = append(out, m)
 	}
 	return out, waiting, nil
+}
+
+// pickBest prefers the first artist's own Topic upload with the track's
+// length anywhere in the results (todo 2.18), else the classic ranking
+// over the top results only.
+func pickBest(ctx context.Context, yc *youtube.Client, t spotify.Track, results []youtube.Video) (youtube.Video, match.Reason, bool, error) {
+	if own := match.OwnTopics(t, results); len(own) > 0 {
+		ids := make([]string, len(own))
+		for i, v := range own {
+			ids[i] = v.ID
+		}
+		lengths, err := yc.VideoLengths(ctx, ids)
+		if err != nil {
+			return youtube.Video{}, "", false, err
+		}
+		for _, v := range own {
+			if match.SameLength(t.DurationMS, lengths[v.ID]) {
+				return v, match.ReasonTopic, true, nil
+			}
+		}
+	}
+	v, reason, ok := match.Pick(results[:min(match.TopResults, len(results))])
+	return v, reason, ok, nil
 }
 
 // printPlan shows one row per track, then the videos that would be removed.

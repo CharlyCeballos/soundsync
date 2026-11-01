@@ -97,15 +97,11 @@ func BuildPlan(matched []Matched, existing []youtube.Item, complete bool) Plan {
 	return p
 }
 
-// minCoreLen keeps very short track names ("Ok", "21") from claiming
-// unrelated videos as replacements.
-const minCoreLen = 3
-
 // replacementFor finds a loose item whose title contains the core of the
 // track name, skipping videos already kept for another track.
 func replacementFor(trackName string, loose []youtube.Item, kept map[string]bool) (youtube.Item, bool) {
-	core := coreTitle(trackName)
-	if len([]rune(core)) < minCoreLen {
+	core, ok := match.CoreTitle(trackName)
+	if !ok {
 		return youtube.Item{}, false
 	}
 	for _, it := range loose {
@@ -114,17 +110,4 @@ func replacementFor(trackName string, loose []youtube.Item, kept map[string]bool
 		}
 	}
 	return youtube.Item{}, false
-}
-
-// coreTitle lowercases a track name and drops suffixes such as
-// "(feat. ...)", "- Film Version" or "[Remastered]", which video titles
-// often write differently.
-func coreTitle(name string) string {
-	s := strings.ToLower(name)
-	for _, sep := range []string{" (", " - ", " ["} {
-		if i := strings.Index(s, sep); i > 0 {
-			s = s[:i]
-		}
-	}
-	return strings.TrimSpace(s)
 }

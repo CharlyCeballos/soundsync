@@ -130,17 +130,3 @@ func TestBuildPlanReplacementNeedsAMeaningfulName(t *testing.T) {
 		t.Errorf("a 2-letter name must not claim a video: %+v", p)
 	}
 }
-
-func TestCoreTitle(t *testing.T) {
-	for in, want := range map[string]string{
-		"I'll Never Love Again - Film Version": "i'll never love again",
-		"Déjenme Llorar (feat. Leonel García)": "déjenme llorar",
-		"Hurt [Remastered]":                    "hurt",
-		"Mentiras":                             "mentiras",
-		"(What's the Story) Morning Glory?":    "(what's the story) morning glory?",
-	} {
-		if got := coreTitle(in); got != want {
-			t.Errorf("coreTitle(%q) = %q, want %q", in, got, want)
-		}
-	}
-}
