@@ -61,6 +61,8 @@ Inside the shell:
 
 Each argument is one playlist; quote names with spaces: `youtube add "The Way to My Favorite Part" Covers`.
 
+Messages follow your system language when it is Spanish or English (Spanish otherwise); `--lang es` or `--lang en` picks one, also inside the shell. Cobra's built-in help and the CSV/JSON report stay in English.
+
 Matching prefers the artist's `- Topic` channel (album audio), then VEVO, then the first result. A track whose video is already in the playlist (same title, artist and length) needs no search, so a long playlist keeps advancing day after day. If you replaced a video by hand, Soundsync keeps yours.
 
 YouTube quota (October 2026): 100 searches and 10,000 units per day per Google Cloud project; every write (create, add, remove) costs 50 units. When the searches run out, what was found is still written and the rest waits for the next run (`--max-searches` sets a lower budget).

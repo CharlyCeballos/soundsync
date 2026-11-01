@@ -9,6 +9,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/CharlyCeballos/soundsync/internal/i18n"
 	"github.com/CharlyCeballos/soundsync/internal/spotify"
 
 	"github.com/spf13/cobra"
@@ -20,7 +21,7 @@ const attribution = "Data from Spotify."
 func newSpotifyCmd(a *app) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "spotify",
-		Short: "Read your Spotify playlists (token kept in memory only)",
+		Short: i18n.T("Read your Spotify playlists (token kept in memory only)"),
 	}
 	cmd.AddCommand(
 		command(a, "playlists", nil, "List the playlists in your Spotify library", cobra.NoArgs, runSpotifyPlaylists),
@@ -55,13 +56,13 @@ func runSpotifyTracks(ctx context.Context, out io.Writer, a *app, args []string)
 		return err
 	}
 	if p.Name != "" && p.AccessFor(s.me.ID) == spotify.AccessFollowed {
-		return fmt.Errorf("%q belongs to another user: Spotify does not let Development Mode apps read it", p.Name)
+		return fmt.Errorf(i18n.T("%q belongs to another user: Spotify does not let Development Mode apps read it"), p.Name)
 	}
 	entries, err := s.client.PlaylistItems(ctx, p.ID)
 	if err != nil {
 		var apiErr *spotify.APIError
 		if errors.As(err, &apiErr) && (apiErr.Status == 403 || apiErr.Status == 404) {
-			return fmt.Errorf("%w\nhint: Spotify only lets Development Mode apps read playlists you own or collaborate on", err)
+			return fmt.Errorf(i18n.T("%w\nhint: Spotify only lets Development Mode apps read playlists you own or collaborate on"), err)
 		}
 		return err
 	}
@@ -99,22 +100,22 @@ func resolvePlaylist(ctx context.Context, s *spotifySession, ref string) (spotif
 		return matches[0], nil
 	case len(matches) > 1:
 		var b strings.Builder
-		fmt.Fprintf(&b, "%q matches %d playlists; use a longer name or the link:", ref, len(matches))
+		fmt.Fprintf(&b, i18n.T("%q matches %d playlists; use a longer name or the link:"), ref, len(matches))
 		for _, m := range matches {
-			fmt.Fprintf(&b, "\n  %s  %s", m.Name, m.URL())
+			fmt.Fprintf(&b, i18n.T("\n  %s  %s"), m.Name, m.URL())
 		}
 		return spotify.Playlist{}, errors.New(b.String())
 	case idErr == nil:
 		// A valid ID that is not in the library (e.g. a link someone shared).
 		return spotify.Playlist{ID: id}, nil
 	}
-	return spotify.Playlist{}, fmt.Errorf("no playlist in your library matches %q; run 'spotify playlists' to see them", ref)
+	return spotify.Playlist{}, fmt.Errorf(i18n.T("no playlist in your library matches %q; run 'spotify playlists' to see them"), ref)
 }
 
 func printPlaylists(out io.Writer, playlists []spotify.Playlist, userID string) {
-	fmt.Fprintf(out, "\nPlaylists in your Spotify library: %d\n\n", len(playlists))
+	fmt.Fprintf(out, i18n.T("\nPlaylists in your Spotify library: %d\n\n"), len(playlists))
 	tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(tw, "  #\tNAME\tTRACKS\tACCESS\tLINK")
+	fmt.Fprintln(tw, i18n.T("  #\tNAME\tTRACKS\tACCESS\tLINK"))
 	followed := 0
 	for i, p := range playlists {
 		access := p.AccessFor(userID)
@@ -125,21 +126,21 @@ func printPlaylists(out io.Writer, playlists []spotify.Playlist, userID string) 
 		if p.Total >= 0 {
 			total = fmt.Sprint(p.Total)
 		}
-		fmt.Fprintf(tw, "  %d\t%s\t%s\t%s\t%s\n", i+1, p.Name, total, access, p.URL())
+		fmt.Fprintf(tw, i18n.T("  %d\t%s\t%s\t%s\t%s\n"), i+1, p.Name, total, access, p.URL())
 	}
 	tw.Flush()
 	if followed > 0 {
-		fmt.Fprintf(out, "\n%d followed playlist(s) belong to other users: Spotify does not let Development Mode apps read them, so they will be skipped.\n", followed)
+		fmt.Fprintf(out, i18n.T("\n%d followed playlist(s) belong to other users: Spotify does not let Development Mode apps read them, so they will be skipped.\n"), followed)
 	}
-	fmt.Fprintln(out, "\n"+attribution)
+	fmt.Fprintln(out, i18n.T("\n")+attribution)
 }
 
 func printEntries(out io.Writer, p spotify.Playlist, entries []spotify.Entry) {
 	title := p.ID
 	if p.Name != "" {
-		title = fmt.Sprintf("%q (%s)", p.Name, p.URL())
+		title = fmt.Sprintf(i18n.T("%q (%s)"), p.Name, p.URL())
 	}
-	fmt.Fprintf(out, "\nPlaylist %s: %d entries\n\n", title, len(entries))
+	fmt.Fprintf(out, i18n.T("\nPlaylist %s: %d entries\n\n"), title, len(entries))
 	tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
 	var tracks, local, episodes, unavailable, noISRC int
 	for _, e := range entries {
@@ -149,7 +150,7 @@ func printEntries(out io.Writer, p spotify.Playlist, entries []spotify.Entry) {
 			} else {
 				unavailable++
 			}
-			fmt.Fprintf(tw, "  %d\t(skipped: %s)\t\t\n", e.Position, e.Skip)
+			fmt.Fprintf(tw, i18n.T("  %d\t(skipped: %s)\t\t\n"), e.Position, e.Skip)
 			continue
 		}
 		t := e.Track
@@ -164,10 +165,10 @@ func printEntries(out io.Writer, p spotify.Playlist, entries []spotify.Entry) {
 			isrc = "-"
 			noISRC++
 		}
-		fmt.Fprintf(tw, "  %d\t%s — %s\t%s\t%s\n", e.Position, strings.Join(t.Artists, ", "), t.Name, isrc, note)
+		fmt.Fprintf(tw, i18n.T("  %d\t%s — %s\t%s\t%s\n"), e.Position, strings.Join(t.Artists, ", "), t.Name, isrc, note)
 	}
 	tw.Flush()
-	fmt.Fprintf(out, "\nTracks: %d (local files: %d, without ISRC: %d). Skipped: %d episode(s), %d unavailable.\n",
+	fmt.Fprintf(out, i18n.T("\nTracks: %d (local files: %d, without ISRC: %d). Skipped: %d episode(s), %d unavailable.\n"),
 		tracks, local, noISRC, episodes, unavailable)
 	fmt.Fprintln(out, attribution)
 }
@@ -183,7 +184,7 @@ func parsePlaylistRef(ref string) (string, error) {
 	case strings.HasPrefix(ref, "http://") || strings.HasPrefix(ref, "https://"):
 		u, err := url.Parse(ref)
 		if err != nil || u.Hostname() != "open.spotify.com" {
-			return "", fmt.Errorf("%q is not an open.spotify.com playlist link", ref)
+			return "", fmt.Errorf(i18n.T("%q is not an open.spotify.com playlist link"), ref)
 		}
 		parts := strings.Split(strings.Trim(u.Path, "/"), "/")
 		for i := 0; i+1 < len(parts); i++ {
@@ -195,7 +196,7 @@ func parsePlaylistRef(ref string) (string, error) {
 		id = ref
 	}
 	if !isBase62(id) {
-		return "", fmt.Errorf("%q is not a Spotify playlist ID, link or URI", ref)
+		return "", fmt.Errorf(i18n.T("%q is not a Spotify playlist ID, link or URI"), ref)
 	}
 	return id, nil
 }

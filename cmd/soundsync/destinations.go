@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/CharlyCeballos/soundsync/internal/i18n"
 	"github.com/CharlyCeballos/soundsync/internal/spotify"
 	"github.com/CharlyCeballos/soundsync/internal/transfer"
 	"github.com/CharlyCeballos/soundsync/internal/youtube"
@@ -39,7 +40,7 @@ func chooseDestinations(out io.Writer, a *app, playlists []youtube.Playlist, src
 	for i, src := range srcs {
 		d := transfer.ResolveDestination(playlists, src.ID, src.Name)
 		for _, dup := range d.Duplicates {
-			fmt.Fprintf(out, "warning: %q (%s) carries the same Soundsync marker as another playlist; only the first one is used.\n", dup.Title, dup.URL())
+			fmt.Fprintf(out, i18n.T("warning: %q (%s) carries the same Soundsync marker as another playlist; only the first one is used.\n"), dup.Title, dup.URL())
 		}
 		dests[i] = destination{src: src, kind: destCreate}
 		switch {
@@ -51,7 +52,7 @@ func chooseDestinations(out io.Writer, a *app, playlists []youtube.Playlist, src
 		}
 	}
 	if yes && len(ambiguous) > 0 {
-		return nil, fmt.Errorf("your channel already has a playlist called %s that Soundsync did not create; run the command without --yes to choose whether to use it", quoteAll(ambiguous))
+		return nil, fmt.Errorf(i18n.T("your channel already has a playlist called %s that Soundsync did not create; run the command without --yes to choose whether to use it"), quoteAll(ambiguous))
 	}
 	for i := range dests {
 		if len(candidates[i]) == 0 {
@@ -68,16 +69,16 @@ func chooseDestinations(out io.Writer, a *app, playlists []youtube.Playlist, src
 // number. Anything else means "create a new playlist"; the final
 // confirmation still shows that before anything is written.
 func askAdopt(out io.Writer, a *app, name string, cands []youtube.Playlist) (youtube.Playlist, bool) {
-	fmt.Fprintf(out, "\n%q: your channel already has %d playlist(s) with this title that Soundsync did not create:\n", name, len(cands))
+	fmt.Fprintf(out, i18n.T("\n%q: your channel already has %d playlist(s) with this title that Soundsync did not create:\n"), name, len(cands))
 	for i, p := range cands {
-		fmt.Fprintf(out, "  %d. %q (%s, %d videos) %s\n", i+1, p.Title, p.Privacy, p.ItemCount, p.URL())
+		fmt.Fprintf(out, i18n.T("  %d. %q (%s, %d videos) %s\n"), i+1, p.Title, p.Privacy, p.ItemCount, p.URL())
 	}
-	fmt.Fprintln(out, "Use one? Soundsync adds a line to its description and copies the missing tracks into it; the videos already there stay.")
+	fmt.Fprintln(out, i18n.T("Use one? Soundsync adds a line to its description and copies the missing tracks into it; the videos already there stay."))
 	choices := "1"
 	if len(cands) > 1 {
 		choices = "1-" + strconv.Itoa(len(cands))
 	}
-	fmt.Fprintf(out, "Type its number (%s), or press Enter for a new playlist: ", choices)
+	fmt.Fprintf(out, i18n.T("Type its number (%s), or press Enter for a new playlist: "), choices)
 	line, err := a.readLine()
 	if err != nil {
 		fmt.Fprintln(out)
@@ -89,7 +90,7 @@ func askAdopt(out io.Writer, a *app, name string, cands []youtube.Playlist) (you
 	if n, err := strconv.Atoi(answer); err == nil && n >= 1 && n <= len(cands) {
 		return cands[n-1], true
 	}
-	fmt.Fprintln(out, "A new playlist will be created.")
+	fmt.Fprintln(out, i18n.T("A new playlist will be created."))
 	return youtube.Playlist{}, false
 }
 
@@ -125,9 +126,9 @@ func (d destination) destCost() int {
 func (d destination) destAction(privacy string) string {
 	switch d.kind {
 	case destCreate:
-		return fmt.Sprintf("create it (%s)", privacy)
+		return fmt.Sprintf(i18n.T("create it (%s)"), privacy)
 	case destAdopt:
-		return "use the existing one and add the Soundsync line to its description"
+		return i18n.T("use the existing one and add the Soundsync line to its description")
 	}
 	return ""
 }

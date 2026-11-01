@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/CharlyCeballos/soundsync/internal/config"
+	"github.com/CharlyCeballos/soundsync/internal/i18n"
 	"github.com/CharlyCeballos/soundsync/internal/oauth"
 	"github.com/CharlyCeballos/soundsync/internal/spotify"
 	"github.com/CharlyCeballos/soundsync/internal/youtube"
@@ -96,7 +97,7 @@ func newApp() *app {
 // confirm asks a yes/no question; anything but an explicit yes means no,
 // including end of input.
 func (a *app) confirm(out io.Writer, question string) bool {
-	fmt.Fprintf(out, "%s [y/N]: ", question)
+	fmt.Fprintf(out, i18n.T("%s [y/N]: "), i18n.T(question))
 	line, err := a.readLine()
 	if err != nil {
 		fmt.Fprintln(out)
@@ -124,7 +125,7 @@ func (a *app) config() (config.Config, error) {
 	}
 	cfg, err := config.FromEnv(os.Getenv)
 	if err != nil {
-		return config.Config{}, fmt.Errorf("%w\nrun 'soundsync config check' for details", err)
+		return config.Config{}, fmt.Errorf(i18n.T("%w\nrun 'soundsync config check' for details"), err)
 	}
 	a.cfg = &cfg
 	return cfg, nil
@@ -166,10 +167,10 @@ func (a *app) close(out io.Writer) {
 	err := youtube.Revoke(ctx, &http.Client{Timeout: revokeTimeout}, a.yt.tok)
 	a.yt = nil
 	if err != nil {
-		fmt.Fprintf(out, "warning: %v; revoke it manually at https://myaccount.google.com/permissions\n", err)
+		fmt.Fprintf(out, i18n.T("warning: %v; revoke it manually at https://myaccount.google.com/permissions\n"), err)
 		return
 	}
-	fmt.Fprintln(out, "Google access revoked. No Spotify or YouTube data was kept on disk, except reports you asked for.")
+	fmt.Fprintln(out, i18n.T("Google access revoked. No Spotify or YouTube data was kept on disk, except reports you asked for."))
 }
 
 func loginSpotify(ctx context.Context, out io.Writer, a *app) (*spotifySession, error) {
@@ -195,7 +196,7 @@ func loginSpotify(ctx context.Context, out io.Writer, a *app) (*spotifySession, 
 	if err != nil {
 		var apiErr *spotify.APIError
 		if errors.As(err, &apiErr) && apiErr.Status == 403 {
-			return nil, fmt.Errorf("%w\nhint: add this Spotify account under User Management in your app's dashboard, and check that the app owner's Premium is active", err)
+			return nil, fmt.Errorf(i18n.T("%w\nhint: add this Spotify account under User Management in your app's dashboard, and check that the app owner's Premium is active"), err)
 		}
 		return nil, err
 	}
@@ -230,14 +231,14 @@ func loginYouTube(ctx context.Context, out io.Writer, a *app) (*youtubeSession, 
 		var apiErr *youtube.APIError
 		switch {
 		case errors.Is(err, youtube.ErrNoChannel):
-			return nil, fmt.Errorf("%w\nhint: create a channel at https://www.youtube.com/create_channel, or log in with another Google account", err)
+			return nil, fmt.Errorf(i18n.T("%w\nhint: create a channel at https://www.youtube.com/create_channel, or log in with another Google account"), err)
 		case errors.As(err, &apiErr) && apiErr.Reason == "accessNotConfigured":
-			return nil, fmt.Errorf("%w\nhint: enable the YouTube Data API v3 in your Google Cloud project (docs/setup.md, step 2)", err)
+			return nil, fmt.Errorf(i18n.T("%w\nhint: enable the YouTube Data API v3 in your Google Cloud project (docs/setup.md, step 2)"), err)
 		}
 		return nil, err
 	}
 	s.channel = ch
-	fmt.Fprintln(out, "Quota used: 1 unit (channels.list).")
+	fmt.Fprintln(out, i18n.T("Quota used: 1 unit (channels.list)."))
 	return s, nil
 }
 
@@ -249,7 +250,7 @@ func command(a *app, use string, aliases []string, short string, args cobra.Posi
 	return &cobra.Command{
 		Use:     use,
 		Aliases: aliases,
-		Short:   short,
+		Short:   i18n.T(short),
 		Args:    args,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt)
@@ -263,16 +264,16 @@ func command(a *app, use string, aliases []string, short string, args cobra.Posi
 // A failure to launch the browser is not fatal: the user can paste the URL.
 func browserOpener(out io.Writer, provider string) func(string) error {
 	return func(authURL string) error {
-		fmt.Fprintf(out, "Opening your browser to log in to %s.\nIf it does not open, paste this URL into it:\n\n  %s\n\nWaiting for the login (Ctrl+C to cancel)...\n", provider, authURL)
+		fmt.Fprintf(out, i18n.T("Opening your browser to log in to %s.\nIf it does not open, paste this URL into it:\n\n  %s\n\nWaiting for the login (Ctrl+C to cancel)...\n"), provider, authURL)
 		if err := oauth.OpenBrowser(authURL); err != nil {
-			fmt.Fprintf(out, "Could not open the browser automatically: %v\n", err)
+			fmt.Fprintf(out, i18n.T("Could not open the browser automatically: %v\n"), err)
 		}
 		return nil
 	}
 }
 
 func noteLogger(out io.Writer) func(string, ...any) {
-	return func(format string, args ...any) { fmt.Fprintf(out, "note: "+format+"\n", args...) }
+	return func(format string, args ...any) { fmt.Fprintf(out, i18n.T("note: ")+format+"\n", args...) }
 }
 
 func explainLoginError(provider string, err error) error {
@@ -280,13 +281,13 @@ func explainLoginError(provider string, err error) error {
 	var re *oauth2.RetrieveError
 	switch {
 	case errors.As(err, &pe) && pe.Code == "access_denied":
-		return fmt.Errorf("%s login was cancelled or denied in the browser", provider)
+		return fmt.Errorf(i18n.T("%s login was cancelled or denied in the browser"), provider)
 	case errors.Is(err, context.DeadlineExceeded):
-		return fmt.Errorf("%s login timed out after %s", provider, loginTimeout)
+		return fmt.Errorf(i18n.T("%s login timed out after %s"), provider, loginTimeout)
 	case errors.Is(err, context.Canceled):
-		return fmt.Errorf("%s login cancelled", provider)
+		return fmt.Errorf(i18n.T("%s login cancelled"), provider)
 	case errors.As(err, &re) && re.ErrorCode == "invalid_client":
-		return fmt.Errorf("%w\nhint: the client ID or secret in .env does not match the OAuth client in the console", err)
+		return fmt.Errorf(i18n.T("%w\nhint: the client ID or secret in .env does not match the OAuth client in the console"), err)
 	}
 	return err
 }

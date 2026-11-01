@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/CharlyCeballos/soundsync/internal/i18n"
+
 	"github.com/spf13/cobra"
 )
 
 func newLoginCmd(a *app) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "login",
-		Short: "Log in to a service and show the connected account (token kept in memory only)",
+		Short: i18n.T("Log in to a service and show the connected account (token kept in memory only)"),
 	}
 	cmd.AddCommand(
 		command(a, "spotify", nil, "Log in to Spotify and show the connected account", cobra.NoArgs, runSpotifyLogin),
@@ -29,7 +31,7 @@ func runSpotifyLogin(ctx context.Context, out io.Writer, a *app, _ []string) err
 	if name == "" {
 		name = s.me.ID
 	}
-	fmt.Fprintf(out, "Logged in to Spotify as %s (user id %s). The token stays in memory only.\n", name, s.me.ID)
+	fmt.Fprintf(out, i18n.T("Logged in to Spotify as %s (user id %s). The token stays in memory only.\n"), name, s.me.ID)
 	return nil
 }
 
@@ -38,6 +40,6 @@ func runYouTubeLogin(ctx context.Context, out io.Writer, a *app, _ []string) err
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(out, "Logged in to YouTube. Playlists would be created on channel %q (id %s).\n", s.channel.Title, s.channel.ID)
+	fmt.Fprintf(out, i18n.T("Logged in to YouTube. Playlists would be created on channel %q (id %s).\n"), s.channel.Title, s.channel.ID)
 	return nil
 }

@@ -1,12 +1,13 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/CharlyCeballos/soundsync/internal/i18n"
 )
 
 // privacyPolicyVersion matches the version line of PRIVACY.md. Changing it
@@ -24,7 +25,7 @@ https://myaccount.google.com/permissions.
 `
 
 // errPolicyDeclined stops a login the user did not consent to.
-var errPolicyDeclined = errors.New("accept the privacy policy to let Soundsync connect to Spotify and YouTube")
+var errPolicyDeclined = i18n.Error("accept the privacy policy to let Soundsync connect to Spotify and YouTube")
 
 // ensurePolicyAccepted asks once, before the first login, that the user
 // accept the privacy policy and the YouTube Terms of Service (YouTube ToS
@@ -43,13 +44,13 @@ func (a *app) ensurePolicyAccepted(out io.Writer) error {
 		}
 	}
 
-	fmt.Fprint(out, privacyNotice)
+	fmt.Fprint(out, i18n.T(privacyNotice))
 	if !a.confirm(out, "Do you accept?") {
 		return errPolicyDeclined
 	}
 	a.policyAccepted = true
 	if path == "" {
-		fmt.Fprintln(out, "note: no config folder found; Soundsync will ask again next time.")
+		fmt.Fprintln(out, i18n.T("note: no config folder found; Soundsync will ask again next time."))
 		return nil
 	}
 	err := os.MkdirAll(a.configDir, 0o700)
@@ -57,7 +58,7 @@ func (a *app) ensurePolicyAccepted(out io.Writer) error {
 		err = os.WriteFile(path, []byte(privacyPolicyVersion+"\n"), 0o600)
 	}
 	if err != nil {
-		fmt.Fprintf(out, "note: could not remember your answer (%v); Soundsync will ask again next time.\n", err)
+		fmt.Fprintf(out, i18n.T("note: could not remember your answer (%v); Soundsync will ask again next time.\n"), err)
 	}
 	return nil
 }

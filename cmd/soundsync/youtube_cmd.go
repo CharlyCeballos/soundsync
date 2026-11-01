@@ -6,6 +6,7 @@ import (
 	"io"
 	"text/tabwriter"
 
+	"github.com/CharlyCeballos/soundsync/internal/i18n"
 	"github.com/CharlyCeballos/soundsync/internal/transfer"
 	"github.com/CharlyCeballos/soundsync/internal/youtube"
 
@@ -18,7 +19,7 @@ const youtubeAttribution = "Data from YouTube."
 func newYouTubeCmd(a *app) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "youtube",
-		Short: "Read and create playlists on your YouTube channel (token revoked on exit)",
+		Short: i18n.T("Read and create playlists on your YouTube channel (token revoked on exit)"),
 	}
 	cmd.AddCommand(
 		command(a, "playlists", nil, "List the playlists on your YouTube channel", cobra.NoArgs, runYouTubePlaylists),
@@ -37,18 +38,18 @@ func runYouTubePlaylists(ctx context.Context, out io.Writer, a *app, _ []string)
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(out, "\nPlaylists on channel %q: %d\n\n", yt.channel.Title, len(playlists))
+	fmt.Fprintf(out, i18n.T("\nPlaylists on channel %q: %d\n\n"), yt.channel.Title, len(playlists))
 	tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(tw, "  #\tTITLE\tVIDEOS\tPRIVACY\tSOUNDSYNC\tLINK")
+	fmt.Fprintln(tw, i18n.T("  #\tTITLE\tVIDEOS\tPRIVACY\tSOUNDSYNC\tLINK"))
 	for i, p := range playlists {
 		source := "-"
 		if ids := transfer.MarkerIDs(p.Description); len(ids) > 0 {
 			source = "spotify:" + ids[0]
 		}
-		fmt.Fprintf(tw, "  %d\t%s\t%d\t%s\t%s\t%s\n", i+1, p.Title, p.ItemCount, p.Privacy, source, p.URL())
+		fmt.Fprintf(tw, i18n.T("  %d\t%s\t%d\t%s\t%s\t%s\n"), i+1, p.Title, p.ItemCount, p.Privacy, source, p.URL())
 	}
 	tw.Flush()
-	fmt.Fprintf(out, "\n%s Quota used this session: %d units.\n", youtubeAttribution, yt.client.UnitsUsed())
+	fmt.Fprintf(out, i18n.T("\n%s Quota used this session: %d units.\n"), youtubeAttribution, yt.client.UnitsUsed())
 	return nil
 }
 
@@ -65,15 +66,15 @@ func newYouTubeCreateCmd(a *app) *cobra.Command {
 		func(ctx context.Context, out io.Writer, a *app, args []string) error {
 			return runYouTubeCreate(ctx, out, a, args, opts)
 		})
-	cmd.Flags().StringVar(&opts.privacy, "privacy", youtube.PrivacyPrivate, "privacy of new playlists: private, unlisted or public")
-	cmd.Flags().BoolVarP(&opts.yes, "yes", "y", false, "create without asking for confirmation")
+	cmd.Flags().StringVar(&opts.privacy, "privacy", youtube.PrivacyPrivate, i18n.T("privacy of new playlists: private, unlisted or public"))
+	cmd.Flags().BoolVarP(&opts.yes, "yes", "y", false, i18n.T("create without asking for confirmation"))
 	return cmd
 }
 
 func runYouTubeCreate(ctx context.Context, out io.Writer, a *app, args []string, opts *createOptions) error {
 	// Validate before any login so a typo costs nothing.
 	if !youtube.ValidPrivacy(opts.privacy) {
-		return fmt.Errorf("invalid --privacy %q (want private, unlisted or public)", opts.privacy)
+		return fmt.Errorf(i18n.T("invalid --privacy %q (want private, unlisted or public)"), opts.privacy)
 	}
 
 	sp, err := a.spotify(ctx, out)
@@ -94,7 +95,7 @@ func runYouTubeCreate(ctx context.Context, out io.Writer, a *app, args []string,
 		return err
 	}
 
-	fmt.Fprintf(out, "\nYouTube channel: %q\n", yt.channel.Title)
+	fmt.Fprintf(out, i18n.T("\nYouTube channel: %q\n"), yt.channel.Title)
 	dests, err := chooseDestinations(out, a, existing, srcs, opts.yes)
 	if err != nil {
 		return err
@@ -102,33 +103,33 @@ func runYouTubeCreate(ctx context.Context, out io.Writer, a *app, args []string,
 	var todo []*destination
 	for i := range dests {
 		d := &dests[i]
-		fmt.Fprintf(out, "\nSpotify playlist: %q (%s)\n", d.src.Name, d.src.URL())
+		fmt.Fprintf(out, i18n.T("\nSpotify playlist: %q (%s)\n"), d.src.Name, d.src.URL())
 		switch d.kind {
 		case destExisting:
 			p := d.target
-			fmt.Fprintf(out, "Already on YouTube as %q (%s, %d videos).\n  %s\n", p.Title, p.Privacy, p.ItemCount, p.MusicURL())
+			fmt.Fprintf(out, i18n.T("Already on YouTube as %q (%s, %d videos).\n  %s\n"), p.Title, p.Privacy, p.ItemCount, p.MusicURL())
 			continue
 		case destAdopt:
-			fmt.Fprintf(out, "Will use %q (%s, %d videos).\n", d.target.Title, d.target.Privacy, d.target.ItemCount)
+			fmt.Fprintf(out, i18n.T("Will use %q (%s, %d videos).\n"), d.target.Title, d.target.Privacy, d.target.ItemCount)
 		default:
-			fmt.Fprintln(out, "Will be created.")
+			fmt.Fprintln(out, i18n.T("Will be created."))
 		}
 		todo = append(todo, d)
 	}
 
 	if len(todo) == 0 {
-		fmt.Fprintln(out, "\nNothing to create.")
-		fmt.Fprintf(out, "%s Quota used this session: %d units.\n", youtubeAttribution, yt.client.UnitsUsed())
+		fmt.Fprintln(out, i18n.T("\nNothing to create."))
+		fmt.Fprintf(out, i18n.T("%s Quota used this session: %d units.\n"), youtubeAttribution, yt.client.UnitsUsed())
 		return nil
 	}
 
-	fmt.Fprintf(out, "\nAbout to change %d playlist(s) on channel %q: %d units (used so far: %d).\n",
+	fmt.Fprintf(out, i18n.T("\nAbout to change %d playlist(s) on channel %q: %d units (used so far: %d).\n"),
 		len(todo), yt.channel.Title, youtube.WriteUnits*len(todo), yt.client.UnitsUsed())
 	for _, d := range todo {
-		fmt.Fprintf(out, "  %q: %s\n", d.src.Name, d.destAction(opts.privacy))
+		fmt.Fprintf(out, i18n.T("  %q: %s\n"), d.src.Name, d.destAction(opts.privacy))
 	}
 	if !opts.yes && !a.confirm(out, "Go ahead?") {
-		fmt.Fprintln(out, "Cancelled. Nothing was changed.")
+		fmt.Fprintln(out, i18n.T("Cancelled. Nothing was changed."))
 		return nil
 	}
 
@@ -137,11 +138,11 @@ func runYouTubeCreate(ctx context.Context, out io.Writer, a *app, args []string,
 			return explainQuota(err)
 		}
 		if d.kind == destCreate {
-			fmt.Fprintf(out, "\nCreated %q (%s).\n  %s\n  %s\n", d.target.Title, d.target.Privacy, d.target.URL(), d.target.MusicURL())
+			fmt.Fprintf(out, i18n.T("\nCreated %q (%s).\n  %s\n  %s\n"), d.target.Title, d.target.Privacy, d.target.URL(), d.target.MusicURL())
 		} else {
-			fmt.Fprintf(out, "\n%q now carries the Soundsync line; Soundsync will keep it in sync.\n  %s\n", d.target.Title, d.target.MusicURL())
+			fmt.Fprintf(out, i18n.T("\n%q now carries the Soundsync line; Soundsync will keep it in sync.\n  %s\n"), d.target.Title, d.target.MusicURL())
 		}
 	}
-	fmt.Fprintf(out, "%s Quota used this session: %d units.\n", youtubeAttribution, yt.client.UnitsUsed())
+	fmt.Fprintf(out, i18n.T("%s Quota used this session: %d units.\n"), youtubeAttribution, yt.client.UnitsUsed())
 	return nil
 }

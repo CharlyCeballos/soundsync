@@ -9,6 +9,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/CharlyCeballos/soundsync/internal/config"
+	"github.com/CharlyCeballos/soundsync/internal/i18n"
 
 	"github.com/spf13/cobra"
 )
@@ -16,11 +17,11 @@ import (
 func newConfigCmd(a *app) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config",
-		Short: "Inspect local configuration",
+		Short: i18n.T("Inspect local configuration"),
 	}
 	cmd.AddCommand(&cobra.Command{
 		Use:   "check",
-		Short: "Validate the .env file without showing secret values",
+		Short: i18n.T("Validate the .env file without showing secret values"),
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runConfigCheck(cmd.OutOrStdout(), a.envFile)
@@ -38,43 +39,43 @@ func runConfigCheck(out io.Writer, envFile string) error {
 	if !loaded {
 		source = envFile + " (not found, using environment only)"
 	}
-	fmt.Fprintf(out, "Config: %s\n\n", source)
+	fmt.Fprintf(out, i18n.T("Config: %s\n\n"), source)
 
 	cfg, cfgErr := config.FromEnv(os.Getenv)
 
 	tw := tabwriter.NewWriter(out, 0, 0, 3, ' ', 0)
 	// Client IDs and secrets are shown only as set/missing: never echo them.
-	fmt.Fprintf(tw, "  %s\t%s\n", config.EnvSpotifyClientID, presence(cfg.SpotifyClientID))
-	fmt.Fprintf(tw, "  %s\t%s\n", config.EnvSpotifyRedirectURI, uriOrInvalid(cfg.SpotifyRedirectURI))
-	fmt.Fprintf(tw, "  %s\t%s\n", config.EnvGoogleClientID, presence(cfg.GoogleClientID))
-	fmt.Fprintf(tw, "  %s\t%s\n", config.EnvGoogleClientSecret, presence(cfg.GoogleClientSecret))
-	fmt.Fprintf(tw, "  %s\t%s\n", config.EnvGoogleRedirectURI, uriOrInvalid(cfg.GoogleRedirectURI))
+	fmt.Fprintf(tw, i18n.T("  %s\t%s\n"), config.EnvSpotifyClientID, presence(cfg.SpotifyClientID))
+	fmt.Fprintf(tw, i18n.T("  %s\t%s\n"), config.EnvSpotifyRedirectURI, uriOrInvalid(cfg.SpotifyRedirectURI))
+	fmt.Fprintf(tw, i18n.T("  %s\t%s\n"), config.EnvGoogleClientID, presence(cfg.GoogleClientID))
+	fmt.Fprintf(tw, i18n.T("  %s\t%s\n"), config.EnvGoogleClientSecret, presence(cfg.GoogleClientSecret))
+	fmt.Fprintf(tw, i18n.T("  %s\t%s\n"), config.EnvGoogleRedirectURI, uriOrInvalid(cfg.GoogleRedirectURI))
 	tw.Flush()
 	fmt.Fprintln(out)
 
 	if cfgErr != nil {
-		fmt.Fprintln(out, "Problems:")
+		fmt.Fprintln(out, i18n.T("Problems:"))
 		for _, e := range unwrapAll(cfgErr) {
-			fmt.Fprintf(out, "  - %v\n", e)
+			fmt.Fprintf(out, i18n.T("  - %v\n"), e)
 		}
-		return errors.New("configuration is invalid")
+		return errors.New(i18n.T("configuration is invalid"))
 	}
-	fmt.Fprintln(out, "OK")
+	fmt.Fprintln(out, i18n.T("OK"))
 	return nil
 }
 
 func presence(v string) string {
 	if v == "" {
-		return "missing"
+		return i18n.T("missing")
 	}
-	return "set"
+	return i18n.T("set")
 }
 
 // uriOrInvalid shows a redirect URI; nil means validation failed and the
 // problem is listed separately.
 func uriOrInvalid(u *url.URL) string {
 	if u == nil {
-		return "invalid"
+		return i18n.T("invalid")
 	}
 	return u.String()
 }

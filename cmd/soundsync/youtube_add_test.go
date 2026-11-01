@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/CharlyCeballos/soundsync/internal/i18n"
 	"github.com/CharlyCeballos/soundsync/internal/transfer"
 )
 
@@ -457,4 +458,22 @@ func TestYouTubeAddFindsOwnTopicBeyondTopResults(t *testing.T) {
 			t.Errorf("Topic length %s: videos = %v, want %s second", c.length, got, c.want)
 		}
 	}
+}
+
+// todo 2.9: --lang es switches the whole flow, and "s" confirms.
+func TestYouTubeAddInSpanish(t *testing.T) {
+	t.Cleanup(func() { i18n.Set(i18n.EN) })
+	yt := newAddFake()
+	out, _ := runLines(t, newTestApp(t, yt), "youtube add Covers --lang es", "s", "exit")
+	if _, inserts := yt.counts(); inserts != 2 {
+		t.Errorf("inserts = %d, want 2: \"s\" must confirm in Spanish", inserts)
+	}
+	mustContain(t, "stdout", out,
+		"Spotify → YouTube en el canal",
+		"Buscando 2 track(s)",
+		"POR QUÉ",
+		"¿Continuar? [s/N]",
+		"Resumen:",
+		`"Covers" (sincronizada): agregados 2`,
+	)
 }

@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync/atomic"
 
+	"github.com/CharlyCeballos/soundsync/internal/i18n"
+
 	"github.com/spf13/cobra"
 )
 
@@ -19,7 +21,7 @@ const shellPrompt = "soundsync> "
 func newShellCmd(a *app) *cobra.Command {
 	return &cobra.Command{
 		Use:   "shell",
-		Short: "Run several commands with one login per service (tokens kept in memory until exit)",
+		Short: i18n.T("Run several commands with one login per service (tokens kept in memory until exit)"),
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runShell(a, cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr())
@@ -31,8 +33,8 @@ func newShellCmd(a *app) *cobra.Command {
 // so logins happen once per service. Google access is revoked by the caller
 // (main) when the shell ends.
 func runShell(a *app, in io.Reader, out, errOut io.Writer) error {
-	fmt.Fprintln(out, "Soundsync shell. Each service asks for a browser login on first use;")
-	fmt.Fprintln(out, "tokens stay in memory until you type 'exit'. Type 'help' for commands.")
+	fmt.Fprintln(out, i18n.T("Soundsync shell. Each service asks for a browser login on first use;"))
+	fmt.Fprintln(out, i18n.T("tokens stay in memory until you type 'exit'. Type 'help' for commands."))
 
 	// Ctrl+C while a command runs cancels that command (see command()).
 	// At the prompt it only reminds the user how to leave, so the shell
@@ -44,7 +46,7 @@ func runShell(a *app, in io.Reader, out, errOut io.Writer) error {
 	go func() {
 		for range sigs {
 			if !busy.Load() {
-				fmt.Fprint(out, "\n(type 'exit' to quit)\n"+shellPrompt)
+				fmt.Fprint(out, i18n.T("\n(type 'exit' to quit)\n")+shellPrompt)
 			}
 		}
 	}()
@@ -68,7 +70,7 @@ func runShell(a *app, in io.Reader, out, errOut io.Writer) error {
 		}
 		args, err := splitArgs(sc.Text())
 		if err != nil {
-			fmt.Fprintf(errOut, "Error: %v\n", err)
+			fmt.Fprintf(errOut, i18n.T("Error: %v\n"), err)
 			continue
 		}
 		if len(args) == 0 {
@@ -78,7 +80,7 @@ func runShell(a *app, in io.Reader, out, errOut io.Writer) error {
 		case "exit", "quit":
 			return nil
 		case "shell":
-			fmt.Fprintln(errOut, "Error: already in the shell")
+			fmt.Fprintln(errOut, i18n.T("Error: already in the shell"))
 			continue
 		}
 
@@ -124,7 +126,7 @@ func splitArgs(line string) ([]string, error) {
 		}
 	}
 	if quote != 0 {
-		return nil, errors.New("unclosed quote")
+		return nil, errors.New(i18n.T("unclosed quote"))
 	}
 	if inArg {
 		args = append(args, cur.String())

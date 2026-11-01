@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"text/tabwriter"
 
+	"github.com/CharlyCeballos/soundsync/internal/i18n"
 	"github.com/CharlyCeballos/soundsync/internal/match"
 	"github.com/CharlyCeballos/soundsync/internal/spotify"
 	"github.com/CharlyCeballos/soundsync/internal/transfer"
@@ -39,11 +40,11 @@ func newYouTubeAddCmd(a *app) *cobra.Command {
 		func(ctx context.Context, out io.Writer, a *app, args []string) error {
 			return runYouTubeAdd(ctx, out, a, args, opts)
 		})
-	cmd.Flags().IntVar(&opts.limit, "limit", 0, "only look at the first N tracks of each playlist (0 = all)")
-	cmd.Flags().IntVar(&opts.maxSearches, "max-searches", youtube.SearchCallsPerDay, "stop searching after N searches in this session; tracks left wait for the next run")
-	cmd.Flags().BoolVarP(&opts.yes, "yes", "y", false, "write without asking for confirmation")
-	cmd.Flags().StringVar(&opts.privacy, "privacy", youtube.PrivacyPrivate, "privacy of playlists that get created: private, unlisted or public")
-	cmd.Flags().StringVar(&opts.report, "report", "", "save a report of this run to a new .csv or .json file")
+	cmd.Flags().IntVar(&opts.limit, "limit", 0, i18n.T("only look at the first N tracks of each playlist (0 = all)"))
+	cmd.Flags().IntVar(&opts.maxSearches, "max-searches", youtube.SearchCallsPerDay, i18n.T("stop searching after N searches in this session; tracks left wait for the next run"))
+	cmd.Flags().BoolVarP(&opts.yes, "yes", "y", false, i18n.T("write without asking for confirmation"))
+	cmd.Flags().StringVar(&opts.privacy, "privacy", youtube.PrivacyPrivate, i18n.T("privacy of playlists that get created: private, unlisted or public"))
+	cmd.Flags().StringVar(&opts.report, "report", "", i18n.T("save a report of this run to a new .csv or .json file"))
 	return cmd
 }
 
@@ -51,11 +52,11 @@ func newYouTubeAddCmd(a *app) *cobra.Command {
 func (o *addOptions) validate() error {
 	switch {
 	case o.limit < 0:
-		return fmt.Errorf("--limit must be 0 (all tracks) or more, got %d", o.limit)
+		return fmt.Errorf(i18n.T("--limit must be 0 (all tracks) or more, got %d"), o.limit)
 	case o.maxSearches < 0:
-		return fmt.Errorf("--max-searches must be 0 or more, got %d", o.maxSearches)
+		return fmt.Errorf(i18n.T("--max-searches must be 0 or more, got %d"), o.maxSearches)
 	case !youtube.ValidPrivacy(o.privacy):
-		return fmt.Errorf("invalid --privacy %q (want private, unlisted or public)", o.privacy)
+		return fmt.Errorf(i18n.T("invalid --privacy %q (want private, unlisted or public)"), o.privacy)
 	case o.report != "":
 		return checkReportPath(o.report)
 	}
@@ -99,10 +100,10 @@ func (j *addJob) actions(privacy string) string {
 		parts = append(parts, s)
 	}
 	if n := len(j.plan.ToAdd); n > 0 {
-		parts = append(parts, fmt.Sprintf("add %d video(s)", n))
+		parts = append(parts, fmt.Sprintf(i18n.T("add %d video(s)"), n))
 	}
 	if n := len(j.plan.Extra); n > 0 {
-		parts = append(parts, fmt.Sprintf("remove %d video(s)", n))
+		parts = append(parts, fmt.Sprintf(i18n.T("remove %d video(s)"), n))
 	}
 	return strings.Join(parts, ", ")
 }
@@ -149,13 +150,13 @@ func runYouTubeAdd(ctx context.Context, out io.Writer, a *app, args []string, op
 	printSearchCount(out, jobs, budget.left.Load())
 	runJobs(ctx, jobs, func(ctx context.Context, j *addJob) error { return j.match(ctx, yt.client, &yt.picks, budget) })
 	if budget.googleSaidNo.Load() {
-		fmt.Fprintln(out, "\nYouTube says today's searches are used up (they reset at midnight Pacific time). What was found so far can still be written.")
+		fmt.Fprintln(out, i18n.T("\nYouTube says today's searches are used up (they reset at midnight Pacific time). What was found so far can still be written."))
 	}
 	for _, j := range jobs {
-		fmt.Fprintf(out, "\n%q\n", j.src.Name)
+		fmt.Fprintf(out, i18n.T("\n%q\n"), j.src.Name)
 		printPlan(out, j)
 		if j.err != nil {
-			fmt.Fprintf(out, "  stopped: %v\n", firstLine(j.err))
+			fmt.Fprintf(out, i18n.T("  stopped: %v\n"), firstLine(j.err))
 		}
 	}
 	if err := firstErr(jobs); err != nil {
@@ -177,18 +178,18 @@ func confirmAndWrite(ctx context.Context, out io.Writer, a *app, yt *youtubeSess
 		}
 	}
 	if len(changing) == 0 {
-		fmt.Fprintln(out, "\nNothing to write.")
+		fmt.Fprintln(out, i18n.T("\nNothing to write."))
 		printAddSummary(out, yt.client, jobs)
 		return nil
 	}
 
-	fmt.Fprintf(out, "\nAbout to change %d playlist(s) on channel %q: %d units (used so far: %d of %d).\n",
+	fmt.Fprintf(out, i18n.T("\nAbout to change %d playlist(s) on channel %q: %d units (used so far: %d of %d).\n"),
 		len(changing), yt.channel.Title, units, yt.client.UnitsUsed(), youtube.UnitsPerDay)
 	for _, j := range changing {
-		fmt.Fprintf(out, "  %q: %s\n", j.src.Name, j.actions(opts.privacy))
+		fmt.Fprintf(out, i18n.T("  %q: %s\n"), j.src.Name, j.actions(opts.privacy))
 	}
 	if !opts.yes && !a.confirm(out, "Go ahead?") {
-		fmt.Fprintln(out, "Cancelled. Nothing was changed.")
+		fmt.Fprintln(out, i18n.T("Cancelled. Nothing was changed."))
 		printAddSummary(out, yt.client, jobs)
 		return nil
 	}
@@ -217,7 +218,7 @@ func prepareAddJobs(ctx context.Context, out io.Writer, a *app, sp *spotifySessi
 		j := &addJob{destination: d, ready: d.kind == destExisting}
 		entries, err := sp.client.PlaylistItems(ctx, d.src.ID)
 		if err != nil {
-			return nil, fmt.Errorf("%q: %w", d.src.Name, err)
+			return nil, fmt.Errorf(i18n.T("%q: %w"), d.src.Name, err)
 		}
 		for _, e := range entries {
 			if e.Skip != "" {
@@ -240,18 +241,18 @@ func prepareAddJobs(ctx context.Context, out io.Writer, a *app, sp *spotifySessi
 
 // printDestinations says where each Spotify playlist goes.
 func printDestinations(out io.Writer, yt *youtubeSession, jobs []*addJob, limit int) {
-	fmt.Fprintf(out, "\nSpotify → YouTube on channel %q:\n", yt.channel.Title)
+	fmt.Fprintf(out, i18n.T("\nSpotify → YouTube on channel %q:\n"), yt.channel.Title)
 	for _, j := range jobs {
-		dest := "a new playlist"
+		dest := i18n.T("a new playlist")
 		if j.kind != destCreate {
-			dest = fmt.Sprintf("%q (%d videos)", j.target.Title, j.target.ItemCount)
+			dest = fmt.Sprintf(i18n.T("%q (%d videos)"), j.target.Title, j.target.ItemCount)
 		}
-		fmt.Fprintf(out, "  %q → %s: %d track(s) to match\n", j.src.Name, dest, len(j.tracks))
+		fmt.Fprintf(out, i18n.T("  %q → %s: %d track(s) to match\n"), j.src.Name, dest, len(j.tracks))
 		switch {
 		case j.capped:
-			fmt.Fprintf(out, "    note: only the first %d tracks: a YouTube playlist holds at most %d videos.\n", maxPlaylistItems, maxPlaylistItems)
+			fmt.Fprintf(out, i18n.T("    note: only the first %d tracks: a YouTube playlist holds at most %d videos.\n"), maxPlaylistItems, maxPlaylistItems)
 		case !j.complete:
-			fmt.Fprintf(out, "    note: only the first %d tracks (--limit).\n", limit)
+			fmt.Fprintf(out, i18n.T("    note: only the first %d tracks (--limit).\n"), limit)
 		}
 	}
 }
@@ -269,25 +270,25 @@ func printSearchCount(out io.Writer, jobs []*addJob, budgetLeft int64) {
 		searches += len(j.tracks) - len(j.known)
 	}
 	if known > 0 {
-		fmt.Fprintf(out, "%d track(s) need no search: already in the YouTube playlist, or matched earlier in this session.\n", known)
+		fmt.Fprintf(out, i18n.T("%d track(s) need no search: already in the YouTube playlist, or matched earlier in this session.\n"), known)
 	}
 	if searches == 0 {
 		return
 	}
 	how := ""
 	if running > 1 {
-		how = " in parallel"
+		how = i18n.T(" in parallel")
 	}
 	if budgetLeft <= 0 {
-		fmt.Fprintf(out, "No searches left in this session (--max-searches): %d track(s) wait for the next run.\n", searches)
+		fmt.Fprintf(out, i18n.T("No searches left in this session (--max-searches): %d track(s) wait for the next run.\n"), searches)
 		return
 	}
 	if int64(searches) > budgetLeft {
-		fmt.Fprintf(out, "Searching %d of %d track(s)%s: %d search(es) left in this session (--max-searches); the rest wait for the next run.\n",
+		fmt.Fprintf(out, i18n.T("Searching %d of %d track(s)%s: %d search(es) left in this session (--max-searches); the rest wait for the next run.\n"),
 			budgetLeft, searches, how, budgetLeft)
 		return
 	}
-	fmt.Fprintf(out, "Searching %d track(s)%s: %d of the %d daily searches.\n", searches, how, searches, youtube.SearchCallsPerDay)
+	fmt.Fprintf(out, i18n.T("Searching %d track(s)%s: %d of the %d daily searches.\n"), searches, how, searches, youtube.SearchCallsPerDay)
 }
 
 // searchBudget is shared by the jobs of one run: the searches left before
@@ -393,9 +394,9 @@ func (j *addJob) write(ctx context.Context, out io.Writer, yc *youtube.Client, p
 		}
 		j.ready = true
 		if j.kind == destCreate {
-			fmt.Fprintf(out, "  created [%s] (%s) %s\n", j.target.Title, j.target.Privacy, j.target.MusicURL())
+			fmt.Fprintf(out, i18n.T("  created [%s] (%s) %s\n"), j.target.Title, j.target.Privacy, j.target.MusicURL())
 		} else {
-			fmt.Fprintf(out, "  marked [%s] as a Soundsync playlist\n", j.target.Title)
+			fmt.Fprintf(out, i18n.T("  marked [%s] as a Soundsync playlist\n"), j.target.Title)
 		}
 	}
 	for i, m := range j.plan.ToAdd {
@@ -403,14 +404,14 @@ func (j *addJob) write(ctx context.Context, out io.Writer, yc *youtube.Client, p
 			return err
 		}
 		j.added++
-		fmt.Fprintf(out, "  + [%s] %d/%d %s\n", j.target.Title, i+1, len(j.plan.ToAdd), m.Video.Title)
+		fmt.Fprintf(out, i18n.T("  + [%s] %d/%d %s\n"), j.target.Title, i+1, len(j.plan.ToAdd), m.Video.Title)
 	}
 	for i, it := range j.plan.Extra {
 		if err := yc.DeleteItem(ctx, it.ID); err != nil && !isNotFound(err) {
 			return err
 		}
 		j.removed++ // a 404 means someone removed it already: same outcome
-		fmt.Fprintf(out, "  - [%s] %d/%d %s\n", j.target.Title, i+1, len(j.plan.Extra), it.Title)
+		fmt.Fprintf(out, i18n.T("  - [%s] %d/%d %s\n"), j.target.Title, i+1, len(j.plan.Extra), it.Title)
 	}
 	return nil
 }
@@ -482,13 +483,13 @@ func printPlan(out io.Writer, j *addJob) {
 	plan := j.plan
 	status := map[int]string{}
 	for _, m := range plan.ToAdd {
-		status[m.Entry.Position] = "add"
+		status[m.Entry.Position] = i18n.T("add")
 	}
 	for _, m := range plan.Present {
-		status[m.Entry.Position] = "already in playlist"
+		status[m.Entry.Position] = i18n.T("already in playlist")
 	}
 	for _, m := range plan.SameVideo {
-		status[m.Entry.Position] = "same video as an earlier track"
+		status[m.Entry.Position] = i18n.T("same video as an earlier track")
 	}
 	replaced := map[int]youtube.Item{}
 	for _, r := range plan.Replaced {
@@ -496,68 +497,68 @@ func printPlan(out io.Writer, j *addJob) {
 	}
 
 	tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(tw, "  #\tSPOTIFY\tYOUTUBE\tWHY\tACTION")
+	fmt.Fprintln(tw, i18n.T("  #\tSPOTIFY\tYOUTUBE\tWHY\tACTION"))
 	for _, m := range j.matched {
 		t := m.Entry.Track
 		left := strings.Join(t.Artists, ", ") + " — " + t.Name
 		if it, ok := replaced[m.Entry.Position]; ok {
-			fmt.Fprintf(tw, "  %d\t%s\t%s %s\tyours\tkeep your video (Soundsync found %s)\n", m.Entry.Position, left, it.Title, it.URL(), m.Video.URL())
+			fmt.Fprintf(tw, i18n.T("  %d\t%s\t%s %s\tyours\tkeep your video (Soundsync found %s)\n"), m.Entry.Position, left, it.Title, it.URL(), m.Video.URL())
 			continue
 		}
 		if !m.Found {
-			fmt.Fprintf(tw, "  %d\t%s\t(no result)\t-\tskip\n", m.Entry.Position, left)
+			fmt.Fprintf(tw, i18n.T("  %d\t%s\t(no result)\t-\tskip\n"), m.Entry.Position, left)
 			continue
 		}
-		right := fmt.Sprintf("%s [%s] %s", m.Video.Title, m.Video.ChannelTitle, m.Video.URL())
-		fmt.Fprintf(tw, "  %d\t%s\t%s\t%s\t%s\n", m.Entry.Position, left, right, m.Reason, status[m.Entry.Position])
+		right := fmt.Sprintf(i18n.T("%s [%s] %s"), m.Video.Title, m.Video.ChannelTitle, m.Video.URL())
+		fmt.Fprintf(tw, i18n.T("  %d\t%s\t%s\t%s\t%s\n"), m.Entry.Position, left, right, i18n.T(string(m.Reason)), status[m.Entry.Position])
 	}
 	tw.Flush()
 
 	if j.waiting > 0 {
-		fmt.Fprintf(out, "  %d track(s) not searched yet: no searches left; the next run picks them up.\n", j.waiting)
+		fmt.Fprintf(out, i18n.T("  %d track(s) not searched yet: no searches left; the next run picks them up.\n"), j.waiting)
 	}
 	if len(j.leftOut) > 0 {
-		fmt.Fprintf(out, "  %d match(es) left out: the playlist would pass YouTube's %d-video limit.\n", len(j.leftOut), maxPlaylistItems)
+		fmt.Fprintf(out, i18n.T("  %d match(es) left out: the playlist would pass YouTube's %d-video limit.\n"), len(j.leftOut), maxPlaylistItems)
 	}
 	if len(plan.Extra) > 0 {
-		fmt.Fprintf(out, "  To remove from %q (no Spotify track matches them):\n", j.title())
+		fmt.Fprintf(out, i18n.T("  To remove from %q (no Spotify track matches them):\n"), j.title())
 		for _, it := range plan.Extra {
-			fmt.Fprintf(out, "    - %s %s\n", it.Title, it.URL())
+			fmt.Fprintf(out, i18n.T("    - %s %s\n"), it.Title, it.URL())
 		}
 	}
 }
 
 func printAddSummary(out io.Writer, yc *youtube.Client, jobs []*addJob) {
-	fmt.Fprintln(out, "Summary:")
+	fmt.Fprintln(out, i18n.T("Summary:"))
 	for _, j := range jobs {
 		p := j.plan
 		state := ""
 		switch {
 		case j.err != nil:
-			state = " (stopped)"
+			state = i18n.T(" (stopped)")
 		case j.ready && j.added == len(p.ToAdd) && p.ExtraKnown && j.removed == len(p.Extra):
 			// Everything in S is now in Y and Y has nothing extra.
-			state = " (in sync)"
+			state = i18n.T(" (in sync)")
 		}
-		fmt.Fprintf(out, "  %q%s: added %d, already there %d, removed %d, kept yours %d, no match %d, same video %d, not searchable %d.\n",
+		fmt.Fprintf(out, i18n.T("  %q%s: added %d, already there %d, removed %d, kept yours %d, no match %d, same video %d, not searchable %d.\n"),
 			j.title(), state, j.added, len(p.Present), j.removed, len(p.Replaced), len(p.Unmatched), len(p.SameVideo), len(j.skipped))
 		if j.waiting > 0 {
-			fmt.Fprintf(out, "    %d track(s) wait for the next run (no searches left).\n", j.waiting)
+			fmt.Fprintf(out, i18n.T("    %d track(s) wait for the next run (no searches left).\n"), j.waiting)
 		}
 		if j.kind == destAdopt && j.ready {
-			fmt.Fprintln(out, "    Its other videos were kept. Later runs remove the ones no Spotify track matches, after asking.")
+			fmt.Fprintln(out, i18n.T("    Its other videos were kept. Later runs remove the ones no Spotify track matches, after asking."))
 		}
 		if j.ready && (j.added > 0 || j.removed > 0 || j.kind != destExisting) {
-			fmt.Fprintf(out, "    %s\n", j.target.MusicURL())
+			fmt.Fprintf(out, i18n.T("    %s\n"), j.target.MusicURL())
 		}
 	}
-	fmt.Fprintf(out, "Quota used this session: %d of %d units, %d of %d searches.\n",
+	fmt.Fprintf(out, i18n.T("Quota used this session: %d of %d units, %d of %d searches.\n"),
 		yc.UnitsUsed(), youtube.UnitsPerDay, yc.SearchesUsed(), youtube.SearchCallsPerDay)
-	fmt.Fprintln(out, "Data from Spotify. Data from YouTube.")
+	fmt.Fprintln(out, i18n.T("Data from Spotify. Data from YouTube."))
 }
 
 // errSiblingQuota marks a job cancelled because another one hit the quota.
-var errSiblingQuota = errors.New("stopped because another playlist reached the daily YouTube quota")
+var errSiblingQuota = i18n.Error("stopped because another playlist reached the daily YouTube quota")
 
 // stopReason explains why a job stopped. A quota error cancels the other
 // jobs (they would fail the same way); they then report errSiblingQuota
@@ -582,10 +583,10 @@ func firstErr(jobs []*addJob) error {
 		case j.err == nil:
 		case errors.Is(j.err, errSiblingQuota):
 			if sibling == nil {
-				sibling = fmt.Errorf("%q: %w", j.src.Name, j.err)
+				sibling = fmt.Errorf(i18n.T("%q: %w"), j.src.Name, j.err)
 			}
 		default:
-			return fmt.Errorf("%q: %w", j.src.Name, j.err)
+			return fmt.Errorf(i18n.T("%q: %w"), j.src.Name, j.err)
 		}
 	}
 	return sibling
@@ -611,7 +612,7 @@ func isNotFound(err error) bool {
 
 func explainQuota(err error) error {
 	if isQuota(err) {
-		return fmt.Errorf("%w\nhint: the daily YouTube quota is used up; it resets at midnight Pacific time. Run the same command again then: it only adds what is missing", err)
+		return fmt.Errorf(i18n.T("%w\nhint: the daily YouTube quota is used up; it resets at midnight Pacific time. Run the same command again then: it only adds what is missing"), err)
 	}
 	return err
 }

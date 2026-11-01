@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/CharlyCeballos/soundsync/internal/i18n"
 	"github.com/CharlyCeballos/soundsync/internal/spotify"
 	"github.com/CharlyCeballos/soundsync/internal/transfer"
 	"github.com/CharlyCeballos/soundsync/internal/youtube"
@@ -45,10 +46,10 @@ func checkReportPath(path string) error {
 	switch strings.ToLower(filepath.Ext(path)) {
 	case ".csv", ".json":
 	default:
-		return fmt.Errorf("--report %q: use a .csv or .json file name", path)
+		return fmt.Errorf(i18n.T("--report %q: use a .csv or .json file name"), path)
 	}
 	if _, err := os.Stat(path); err == nil {
-		return fmt.Errorf("--report %q already exists; choose another file name (Soundsync never overwrites files)", path)
+		return fmt.Errorf(i18n.T("--report %q already exists; choose another file name (Soundsync never overwrites files)"), path)
 	}
 	return nil
 }
@@ -58,10 +59,10 @@ func saveReport(out io.Writer, path string, jobs []*addJob) error {
 	rows := reportRows(jobs)
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
 	if errors.Is(err, fs.ErrExist) {
-		return fmt.Errorf("report not saved: %q already exists", path)
+		return fmt.Errorf(i18n.T("report not saved: %q already exists"), path)
 	}
 	if err != nil {
-		return fmt.Errorf("report not saved: %w", err)
+		return fmt.Errorf(i18n.T("report not saved: %w"), err)
 	}
 	if strings.ToLower(filepath.Ext(path)) == ".json" {
 		enc := json.NewEncoder(f)
@@ -77,9 +78,9 @@ func saveReport(out io.Writer, path string, jobs []*addJob) error {
 		err = cerr
 	}
 	if err != nil {
-		return fmt.Errorf("report not saved: %w", err)
+		return fmt.Errorf(i18n.T("report not saved: %w"), err)
 	}
-	fmt.Fprintf(out, "Report saved to %s (%d rows).\n", path, len(rows))
+	fmt.Fprintf(out, i18n.T("Report saved to %s (%d rows).\n"), path, len(rows))
 	return nil
 }
 

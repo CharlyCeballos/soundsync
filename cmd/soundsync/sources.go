@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/CharlyCeballos/soundsync/internal/i18n"
 	"github.com/CharlyCeballos/soundsync/internal/spotify"
 )
 
@@ -24,9 +25,9 @@ func resolveSources(ctx context.Context, sp *spotifySession, args []string) ([]s
 		case err != nil:
 			problems = append(problems, err.Error())
 		case p.Name == "":
-			problems = append(problems, fmt.Sprintf("%q is not in your Spotify library; run 'spotify playlists' to see them", arg))
+			problems = append(problems, fmt.Sprintf(i18n.T("%q is not in your Spotify library; run 'spotify playlists' to see them"), arg))
 		case p.AccessFor(sp.me.ID) == spotify.AccessFollowed:
-			problems = append(problems, fmt.Sprintf("%q belongs to another user: Spotify does not let Development Mode apps read it", p.Name))
+			problems = append(problems, fmt.Sprintf(i18n.T("%q belongs to another user: Spotify does not let Development Mode apps read it"), p.Name))
 		case seen[p.ID]:
 			// Same playlist named twice: process it once.
 		default:
@@ -37,7 +38,7 @@ func resolveSources(ctx context.Context, sp *spotifySession, args []string) ([]s
 	if len(problems) > 0 {
 		msg := strings.Join(problems, "\n")
 		if len(args) > 1 {
-			msg += "\ntip: each argument is one playlist; quote names with spaces, e.g. \"The Way to My Favorite Part\""
+			msg += i18n.T("\ntip: each argument is one playlist; quote names with spaces, e.g. \"The Way to My Favorite Part\"")
 		}
 		return nil, errors.New(msg)
 	}
@@ -48,7 +49,7 @@ func resolveSources(ctx context.Context, sp *spotifySession, args []string) ([]s
 func quoteAll(names []string) string {
 	q := make([]string, len(names))
 	for i, n := range names {
-		q[i] = fmt.Sprintf("%q", n)
+		q[i] = fmt.Sprintf(i18n.T("%q"), n)
 	}
 	return strings.Join(q, " ")
 }
