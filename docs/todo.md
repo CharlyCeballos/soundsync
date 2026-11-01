@@ -9,6 +9,40 @@ Estado: `todo` | `doing` | `done` | `blocked`
 
 Fase 1 cerrada (GO 2026-10-30, `planV2.md` escrito 2026-11-01). **Fase 2 cerrada 2026-11-01** (autor): todos los ítems done; pruebas unit, integración, CI y reales en verde (solo T.7 sigue todo: sin playlists colaborativas). **Fase 3: todos los ítems done** (cierre = decisión del autor). Release `v0.1.0` en borrador (D.2). Ya se puede re-correr `youtube add` sobre "The Way" y "Covers" (2.17 conserva la corrección manual; verificado en real 2026-11-01). Playlists privadas de prueba **"Soundsync test"** (Spotify: Bohemian Rhapsody, Billie Jean, Take on Me; YouTube: igual): pendiente que el autor las borre ahora que la fase cerró. Repo en `github.com/CharlyCeballos/soundsync` (aún PRIVATE, ver D.1).
 
+### Primero al retomar (anotado 2026-11-01, al terminar fase 3)
+
+Revisar esto antes de seguir con la fase 4. Marcar `[x]` lo hecho y borrar el bloque cuando quede vacío.
+
+**Carlos tiene que hacer:**
+
+- [ ] **Publicar o borrar el release borrador `v0.1.0`** (D.2). Revisarlo en https://github.com/CharlyCeballos/soundsync/releases (notas autogeneradas, 3 archivos). Publicar: `gh release edit v0.1.0 --draft=false`. Borrar si algo está mal: `gh release delete v0.1.0 --cleanup-tag`.
+- [ ] **Decidir si la fase 3 queda cerrada** (todos sus ítems están done).
+- [ ] **Borrar las playlists de prueba "Soundsync test"** en Spotify y en YouTube (pendiente desde la fase 2).
+- [ ] **Validar o cambiar la decisión de no subir `privacyPolicyVersion`** (decisión de Claude). `PRIVACY.md` ahora dice que GitHub ve la IP y la versión de Soundsync en el aviso de versión. La versión que aceptaste ya anunciaba ese chequeo sin datos tuyos. Si lo consideras un cambio material, sube la constante en `cmd/soundsync/privacy.go` y la línea "Version" de `PRIVACY.md`; todos tendrán que aceptarla de nuevo.
+- [ ] **Probar el zip como usuario nuevo en tu Windows** (opcional, recomendado):
+  1. Descomprimir `soundsync_0.1.0_windows_amd64.zip` en una carpeta fuera del repo.
+  2. Copiar tu `.env` a `%APPDATA%\soundsync\.env`.
+  3. Correr `soundsync.exe config check`: debe leer ese archivo.
+  4. Correr `soundsync.exe shell` y hacer un login real.
+  5. Anotar qué muestra SmartScreen o Defender.
+- [ ] **Probar el `.deb` en un Debian/Ubuntu real**, si tienes uno: `sudo apt install ./soundsync_0.1.0_amd64.deb`, `.env` en `~/.config/soundsync/.env`, `soundsync config check`, login (abre el navegador con `xdg-open`).
+
+**No probado (riesgo abierto):**
+
+- `.deb` instalado en un Debian real: solo el smoke test del runner de CI (`dpkg -i` + `soundsync version`). Login con `xdg-open` en Linux nunca probado.
+- Advertencia de SmartScreen y comportamiento de Defender con el exe sin firma.
+- Login real con un binario de release. Los logins reales se hicieron con `go run`. El fallback a `%APPDATA%\soundsync\.env` solo se probó con valores falsos y `config check`.
+- Aviso de versión mostrando una versión nueva contra GitHub real. Solo se probó con servidor falso (8 casos). En real solo se vio el caso 404 (repo privado → silencio). Se podrá probar cuando el repo sea público y exista un release mayor que el instalado.
+- T.7: playlist colaborativa de Spotify (no hay ninguna en la cuenta del autor).
+
+**A vigilar:**
+
+- Con el repo privado (D.1, público después de la fase 4), los links del README a Releases y `PRIVACY.md` dan 404 a terceros, y el aviso de versión no le funciona a nadie.
+- GitHub está migrando `ubuntu-latest` a Ubuntu 26 (aviso en el CI del 2026-11-01). En el próximo release, confirmar que `dpkg-deb`, `zip` y el smoke test siguen verdes.
+- El aviso de versión puede retrasar hasta 2 s el arranque de `shell` con red lenta.
+
+**Siguiente trabajo:** fase 4. Empieza con 4.1: evaluar Wails v3 vs v2 en Windows y Debian.
+
 ### Para retomar
 
 - Comandos del spike: `go run ./cmd/soundsync shell` y dentro `spotify playlists`, `spotify tracks <playlist>`, `youtube playlists`, `youtube create <playlist>... [-y] [--privacy]`, `youtube add <playlist>... [--limit N] [-y]`, `login spotify|youtube`, `config check`, `exit`. Cada argumento = una playlist; nombres con espacios entre comillas.
