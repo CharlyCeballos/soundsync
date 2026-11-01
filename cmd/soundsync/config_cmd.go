@@ -8,7 +8,7 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"soundsync/internal/config"
+	"github.com/CharlyCeballos/soundsync/internal/config"
 
 	"github.com/spf13/cobra"
 )

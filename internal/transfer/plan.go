@@ -1,9 +1,9 @@
 package transfer
 
 import (
-	"soundsync/internal/match"
-	"soundsync/internal/spotify"
-	"soundsync/internal/youtube"
+	"github.com/CharlyCeballos/soundsync/internal/match"
+	"github.com/CharlyCeballos/soundsync/internal/spotify"
+	"github.com/CharlyCeballos/soundsync/internal/youtube"
 )
 
 // Matched is one Spotify track with the YouTube video chosen for it.

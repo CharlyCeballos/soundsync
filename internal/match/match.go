@@ -3,8 +3,8 @@ package match
 import (
 	"strings"
 
-	"soundsync/internal/spotify"
-	"soundsync/internal/youtube"
+	"github.com/CharlyCeballos/soundsync/internal/spotify"
+	"github.com/CharlyCeballos/soundsync/internal/youtube"
 )
 
 // SearchResults is how many results to request per track. search.list costs

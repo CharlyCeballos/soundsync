@@ -12,8 +12,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"soundsync/internal/spotify"
-	"soundsync/internal/youtube"
+	"github.com/CharlyCeballos/soundsync/internal/spotify"
+	"github.com/CharlyCeballos/soundsync/internal/youtube"
 
 	"golang.org/x/oauth2"
 )
@@ -30,7 +30,7 @@ func TestSplitArgs(t *testing.T) {
 		{`spotify tracks "The Way to My Favorite Part"`, []string{"spotify", "tracks", "The Way to My Favorite Part"}},
 		{`spotify tracks 'Para regresar 😈💕💝'`, []string{"spotify", "tracks", "Para regresar 😈💕💝"}},
 		{`spotify tracks "Surfin' 🏄"`, []string{"spotify", "tracks", "Surfin' 🏄"}},
-		{`config check --env-file "C:\Users\carlos\my env\.env"`, []string{"config", "check", "--env-file", `C:\Users\carlos\my env\.env`}},
+		{`config check --env-file "C:\Users\me\my env\.env"`, []string{"config", "check", "--env-file", `C:\Users\me\my env\.env`}},
 		{`x ""`, []string{"x", ""}},
 	}
 	for _, c := range cases {

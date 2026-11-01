@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"soundsync/internal/youtube"
+	"github.com/CharlyCeballos/soundsync/internal/youtube"
 )
 
 const spID = "5ZwLvrI8d6VnEQXxB0bMms"

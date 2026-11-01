@@ -3,7 +3,7 @@ package transfer
 import (
 	"regexp"
 
-	"soundsync/internal/youtube"
+	"github.com/CharlyCeballos/soundsync/internal/youtube"
 )
 
 // MarkerPrefix tags a YouTube playlist with the Spotify playlist it mirrors

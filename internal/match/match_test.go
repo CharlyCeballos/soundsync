@@ -3,8 +3,8 @@ package match
 import (
 	"testing"
 
-	"soundsync/internal/spotify"
-	"soundsync/internal/youtube"
+	"github.com/CharlyCeballos/soundsync/internal/spotify"
+	"github.com/CharlyCeballos/soundsync/internal/youtube"
 )
 
 func TestQueryUsesOriginalMetadata(t *testing.T) {

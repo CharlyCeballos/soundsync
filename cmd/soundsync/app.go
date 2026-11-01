@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"soundsync/internal/config"
-	"soundsync/internal/oauth"
-	"soundsync/internal/spotify"
-	"soundsync/internal/youtube"
+	"github.com/CharlyCeballos/soundsync/internal/config"
+	"github.com/CharlyCeballos/soundsync/internal/oauth"
+	"github.com/CharlyCeballos/soundsync/internal/spotify"
+	"github.com/CharlyCeballos/soundsync/internal/youtube"
 
 	"github.com/spf13/cobra"
 	"golang.org/x/oauth2"

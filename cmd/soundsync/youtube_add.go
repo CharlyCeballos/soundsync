@@ -9,10 +9,10 @@ import (
 	"sync"
 	"text/tabwriter"
 
-	"soundsync/internal/match"
-	"soundsync/internal/spotify"
-	"soundsync/internal/transfer"
-	"soundsync/internal/youtube"
+	"github.com/CharlyCeballos/soundsync/internal/match"
+	"github.com/CharlyCeballos/soundsync/internal/spotify"
+	"github.com/CharlyCeballos/soundsync/internal/transfer"
+	"github.com/CharlyCeballos/soundsync/internal/youtube"
 
 	"github.com/spf13/cobra"
 )

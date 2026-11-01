@@ -1,4 +1,4 @@
-module soundsync
+module github.com/CharlyCeballos/soundsync
 
 go 1.26.0
 

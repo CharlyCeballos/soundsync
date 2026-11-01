@@ -9,7 +9,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"soundsync/internal/spotify"
+	"github.com/CharlyCeballos/soundsync/internal/spotify"
 
 	"github.com/spf13/cobra"
 )

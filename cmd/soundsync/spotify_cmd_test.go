@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"soundsync/internal/spotify"
+	"github.com/CharlyCeballos/soundsync/internal/spotify"
 )
 
 func TestParsePlaylistRef(t *testing.T) {

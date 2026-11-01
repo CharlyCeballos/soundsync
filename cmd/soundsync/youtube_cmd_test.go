@@ -12,9 +12,9 @@ import (
 	"sync"
 	"testing"
 
-	"soundsync/internal/spotify"
-	"soundsync/internal/transfer"
-	"soundsync/internal/youtube"
+	"github.com/CharlyCeballos/soundsync/internal/spotify"
+	"github.com/CharlyCeballos/soundsync/internal/transfer"
+	"github.com/CharlyCeballos/soundsync/internal/youtube"
 
 	"golang.org/x/oauth2"
 )

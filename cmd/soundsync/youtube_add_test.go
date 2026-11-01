@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"soundsync/internal/transfer"
+	"github.com/CharlyCeballos/soundsync/internal/transfer"
 )
 
 const (

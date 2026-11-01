@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"soundsync/internal/spotify"
+	"github.com/CharlyCeballos/soundsync/internal/spotify"
 )
 
 // resolveSources turns each argument into one Spotify playlist the user can

@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strings"
 
-	"soundsync/internal/oauth"
+	"github.com/CharlyCeballos/soundsync/internal/oauth"
 
 	"golang.org/x/oauth2"
 )

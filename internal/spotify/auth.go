@@ -3,7 +3,7 @@ package spotify
 import (
 	"net/url"
 
-	"soundsync/internal/oauth"
+	"github.com/CharlyCeballos/soundsync/internal/oauth"
 
 	"golang.org/x/oauth2"
 )
