@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/CharlyCeballos/soundsync/internal/config"
@@ -35,6 +36,10 @@ const (
 // Tokens never leave this struct and are never written to disk.
 type app struct {
 	envFile string
+	// configDir holds the privacy-policy acceptance, the only file Soundsync
+	// writes on its own; "" when the OS has no config folder.
+	configDir      string
+	policyAccepted bool
 
 	// baseCtx outlives individual commands. OAuth clients are built with it
 	// because token refreshes use the context the client was created with.
@@ -64,13 +69,18 @@ type youtubeSession struct {
 	client  *youtube.Client
 	channel youtube.Channel
 	tok     *oauth2.Token
+	// picks remembers the video found for each search query (todo 2.16):
+	// running add again in the same session costs no searches. It lives in
+	// RAM and dies with the session. Values are transfer.Matched.
+	picks sync.Map
 }
 
 func newApp() *app {
 	stdin := bufio.NewReader(os.Stdin)
 	return &app{
-		envFile: ".env",
-		baseCtx: context.Background(),
+		envFile:   ".env",
+		configDir: defaultConfigDir(),
+		baseCtx:   context.Background(),
 		readLine: func() (string, error) {
 			line, err := stdin.ReadString('\n')
 			if err == io.EOF && line != "" {
@@ -92,7 +102,12 @@ func (a *app) confirm(out io.Writer, question string) bool {
 		fmt.Fprintln(out)
 		return false
 	}
-	switch strings.ToLower(strings.TrimSpace(line)) {
+	return isYes(strings.ToLower(strings.TrimSpace(line)))
+}
+
+// isYes accepts English and Spanish yes; answer must be trimmed and lowercase.
+func isYes(answer string) bool {
+	switch answer {
 	case "y", "yes", "s", "si", "sí":
 		return true
 	}
@@ -154,12 +169,15 @@ func (a *app) close(out io.Writer) {
 		fmt.Fprintf(out, "warning: %v; revoke it manually at https://myaccount.google.com/permissions\n", err)
 		return
 	}
-	fmt.Fprintln(out, "Google access revoked. Nothing was stored on disk.")
+	fmt.Fprintln(out, "Google access revoked. No Spotify or YouTube data was kept on disk, except reports you asked for.")
 }
 
 func loginSpotify(ctx context.Context, out io.Writer, a *app) (*spotifySession, error) {
 	cfg, err := a.config()
 	if err != nil {
+		return nil, err
+	}
+	if err := a.ensurePolicyAccepted(out); err != nil {
 		return nil, err
 	}
 	flow := spotify.NewFlow(cfg.SpotifyClientID, cfg.SpotifyRedirectURI)
@@ -187,6 +205,9 @@ func loginSpotify(ctx context.Context, out io.Writer, a *app) (*spotifySession, 
 func loginYouTube(ctx context.Context, out io.Writer, a *app) (*youtubeSession, error) {
 	cfg, err := a.config()
 	if err != nil {
+		return nil, err
+	}
+	if err := a.ensurePolicyAccepted(out); err != nil {
 		return nil, err
 	}
 	flow := youtube.NewFlow(cfg.GoogleClientID, cfg.GoogleClientSecret, cfg.GoogleRedirectURI)

@@ -20,17 +20,26 @@ const DefaultBaseURL = "https://www.googleapis.com/youtube/v3"
 // search.list costs 1 unit but also draws from its own bucket of
 // SearchCallsPerDay calls; everything else shares UnitsPerDay.
 const (
-	costList           = 1  // channels.list, playlists.list, playlistItems.list (per page)
-	costSearch         = 1  // search.list, plus one call from the search bucket
-	costPlaylistInsert = 50 // playlists.insert
-	costItemInsert     = 50 // playlistItems.insert
+	costList           = 1 // channels.list, playlists.list, playlistItems.list (per page)
+	costSearch         = 1 // search.list, plus one call from the search bucket
+	costPlaylistInsert = WriteUnits
+	costPlaylistUpdate = WriteUnits
+	costItemInsert     = WriteUnits
+	costItemDelete     = WriteUnits
 )
+
+// WriteUnits is the cost of every write Soundsync makes: playlists.insert
+// and .update, playlistItems.insert and .delete.
+const WriteUnits = 50
 
 // Default daily allocations of a Google Cloud project.
 const (
 	UnitsPerDay       = 10000
 	SearchCallsPerDay = 100
 )
+
+// MaxPlaylistItems is the most videos a YouTube playlist holds.
+const MaxPlaylistItems = 5000
 
 // Client calls the YouTube Data API with an already-authorized HTTP client
 // and counts the quota it spends.
@@ -146,6 +155,9 @@ func (c *Client) do(ctx context.Context, method, path string, q url.Values, body
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		return parseAPIError(resp)
+	}
+	if out == nil { // e.g. DELETE answers 204 with no body
+		return nil
 	}
 	if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
 		return fmt.Errorf("decode youtube %s %s: %w", method, path, err)

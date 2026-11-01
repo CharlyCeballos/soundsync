@@ -18,6 +18,9 @@ const (
 	ReasonTopic Reason = "topic" // auto-generated "Artist - Topic" channel
 	ReasonVEVO  Reason = "vevo"  // official VEVO channel
 	ReasonFirst Reason = "first" // no official upload in the results: first result
+	// ReasonInPlaylist: already in the destination playlist (same title,
+	// artist and length), found without a search (transfer.PreMatch).
+	ReasonInPlaylist Reason = "playlist"
 )
 
 // Query builds the search text from Spotify's original metadata, untouched

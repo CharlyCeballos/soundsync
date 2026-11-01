@@ -3,6 +3,7 @@ package youtube
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strconv"
 )
@@ -26,6 +27,9 @@ type Playlist struct {
 	Description string
 	Privacy     string
 	ItemCount   int
+	// defaultLanguage is sent back on update: playlists.update replaces the
+	// whole snippet, and an omitted field is cleared.
+	defaultLanguage string
 }
 
 // URL opens the playlist on YouTube (Developer Policies III.F.2: make
@@ -38,8 +42,9 @@ func (p Playlist) MusicURL() string { return "https://music.youtube.com/playlist
 type playlistJSON struct {
 	ID      string `json:"id"`
 	Snippet struct {
-		Title       string `json:"title"`
-		Description string `json:"description"`
+		Title           string `json:"title"`
+		Description     string `json:"description"`
+		DefaultLanguage string `json:"defaultLanguage"`
 	} `json:"snippet"`
 	Status struct {
 		PrivacyStatus string `json:"privacyStatus"`
@@ -56,6 +61,8 @@ func (p playlistJSON) toPlaylist() Playlist {
 		Description: p.Snippet.Description,
 		Privacy:     p.Status.PrivacyStatus,
 		ItemCount:   p.ContentDetails.ItemCount,
+
+		defaultLanguage: p.Snippet.DefaultLanguage,
 	}
 }
 
@@ -110,4 +117,17 @@ func (c *Client) CreatePlaylist(ctx context.Context, title, description, privacy
 		return Playlist{}, err
 	}
 	return created.toPlaylist(), nil
+}
+
+// SetDescription replaces a playlist's description, keeping its title and
+// default language. Privacy is never sent, so it never changes (Developer
+// Policies III.E.3.f). Costs 50 quota units.
+func (c *Client) SetDescription(ctx context.Context, p Playlist, description string) error {
+	snippet := map[string]string{"title": p.Title, "description": description}
+	if p.defaultLanguage != "" {
+		snippet["defaultLanguage"] = p.defaultLanguage
+	}
+	body := map[string]any{"id": p.ID, "snippet": snippet}
+	var updated playlistJSON
+	return c.do(ctx, http.MethodPut, "/playlists", url.Values{"part": {"snippet"}}, body, costPlaylistUpdate, &updated)
 }

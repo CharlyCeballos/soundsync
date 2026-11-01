@@ -2,6 +2,7 @@ package transfer
 
 import (
 	"regexp"
+	"strings"
 
 	"github.com/CharlyCeballos/soundsync/internal/youtube"
 )
@@ -25,11 +26,23 @@ func MarkerIDs(description string) []string {
 	return ids
 }
 
+// keepMarkerHint precedes the marker so a user editing the description
+// knows not to delete it.
+const keepMarkerHint = "Keep the next line: it lets Soundsync update this playlist instead of creating a new one.\n"
+
 // Description is the text Soundsync writes on playlists it creates.
 func Description(spotifyID string) string {
-	return "Copied from a Spotify playlist with Soundsync.\n" +
-		"Keep the next line: it lets Soundsync update this playlist instead of creating a new one.\n" +
-		Marker(spotifyID)
+	return "Copied from a Spotify playlist with Soundsync.\n" + keepMarkerHint + Marker(spotifyID)
+}
+
+// AdoptedDescription keeps the user's description of an adopted playlist
+// and appends the marker (planV1 §5, todo 2.1).
+func AdoptedDescription(current, spotifyID string) string {
+	tail := keepMarkerHint + Marker(spotifyID)
+	if strings.TrimSpace(current) == "" {
+		return tail
+	}
+	return strings.TrimRight(current, "\n") + "\n\n" + tail
 }
 
 // Destination is where a Spotify playlist should go on YouTube.

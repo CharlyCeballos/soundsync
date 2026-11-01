@@ -2,18 +2,31 @@ package youtube
 
 import (
 	"context"
+	"html"
+	"net/http"
 	"net/url"
 	"strconv"
 )
 
-// PlaylistVideoIDs returns the video IDs in a playlist, in playlist order.
-// Costs 1 unit per page of 50.
-func (c *Client) PlaylistVideoIDs(ctx context.Context, playlistID string) ([]string, error) {
-	var ids []string
+// Item is one entry of a playlist.
+type Item struct {
+	ID      string // playlist item ID: deleting needs it, not the video ID
+	VideoID string
+	Title   string // as YouTube shows it; "Deleted video" or "Private video" when unavailable
+	Channel string // the video owner's channel; empty when unavailable
+}
+
+// URL opens the item's video on YouTube.
+func (it Item) URL() string { return Video{ID: it.VideoID}.URL() }
+
+// PlaylistItems returns a playlist's entries in playlist order.
+// Costs 1 unit per page of 50 (snippet costs nothing extra).
+func (c *Client) PlaylistItems(ctx context.Context, playlistID string) ([]Item, error) {
+	var items []Item
 	pageToken := ""
 	for {
 		q := url.Values{
-			"part":       {"contentDetails"},
+			"part":       {"snippet,contentDetails"},
 			"playlistId": {playlistID},
 			"maxResults": {strconv.Itoa(listPageSize)},
 		}
@@ -22,6 +35,11 @@ func (c *Client) PlaylistVideoIDs(ctx context.Context, playlistID string) ([]str
 		}
 		var page struct {
 			Items []struct {
+				ID      string `json:"id"`
+				Snippet struct {
+					Title                  string `json:"title"`
+					VideoOwnerChannelTitle string `json:"videoOwnerChannelTitle"`
+				} `json:"snippet"`
 				ContentDetails struct {
 					VideoID string `json:"videoId"`
 				} `json:"contentDetails"`
@@ -33,11 +51,16 @@ func (c *Client) PlaylistVideoIDs(ctx context.Context, playlistID string) ([]str
 		}
 		for _, it := range page.Items {
 			if it.ContentDetails.VideoID != "" {
-				ids = append(ids, it.ContentDetails.VideoID)
+				items = append(items, Item{
+					ID:      it.ID,
+					VideoID: it.ContentDetails.VideoID,
+					Title:   html.UnescapeString(it.Snippet.Title),
+					Channel: html.UnescapeString(it.Snippet.VideoOwnerChannelTitle),
+				})
 			}
 		}
 		if page.NextPageToken == "" {
-			return ids, nil
+			return items, nil
 		}
 		pageToken = page.NextPageToken
 	}
@@ -56,4 +79,10 @@ func (c *Client) AddVideo(ctx context.Context, playlistID, videoID string) error
 		ID string `json:"id"`
 	}
 	return c.post(ctx, "/playlistItems", url.Values{"part": {"snippet"}}, body, costItemInsert, &created)
+}
+
+// DeleteItem removes one entry (by playlist item ID) from its playlist.
+// Costs 50 units.
+func (c *Client) DeleteItem(ctx context.Context, itemID string) error {
+	return c.do(ctx, http.MethodDelete, "/playlistItems", url.Values{"id": {itemID}}, nil, costItemDelete, nil)
 }

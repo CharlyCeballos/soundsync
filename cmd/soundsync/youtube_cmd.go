@@ -6,7 +6,6 @@ import (
 	"io"
 	"text/tabwriter"
 
-	"github.com/CharlyCeballos/soundsync/internal/spotify"
 	"github.com/CharlyCeballos/soundsync/internal/transfer"
 	"github.com/CharlyCeballos/soundsync/internal/youtube"
 
@@ -96,51 +95,52 @@ func runYouTubeCreate(ctx context.Context, out io.Writer, a *app, args []string,
 	}
 
 	fmt.Fprintf(out, "\nYouTube channel: %q\n", yt.channel.Title)
-	var toCreate []spotify.Playlist
-	for _, src := range srcs {
-		dest := transfer.ResolveDestination(existing, src.ID, src.Name)
-		fmt.Fprintf(out, "\nSpotify playlist: %q (%s)\n", src.Name, src.URL())
-		for _, d := range dest.Duplicates {
-			fmt.Fprintf(out, "warning: %q (%s) carries the same Soundsync marker; only the first one is used.\n", d.Title, d.URL())
-		}
-		if p := dest.Existing; p != nil {
+	dests, err := chooseDestinations(out, a, existing, srcs, opts.yes)
+	if err != nil {
+		return err
+	}
+	var todo []*destination
+	for i := range dests {
+		d := &dests[i]
+		fmt.Fprintf(out, "\nSpotify playlist: %q (%s)\n", d.src.Name, d.src.URL())
+		switch d.kind {
+		case destExisting:
+			p := d.target
 			fmt.Fprintf(out, "Already on YouTube as %q (%s, %d videos).\n  %s\n", p.Title, p.Privacy, p.ItemCount, p.MusicURL())
 			continue
+		case destAdopt:
+			fmt.Fprintf(out, "Will use %q (%s, %d videos).\n", d.target.Title, d.target.Privacy, d.target.ItemCount)
+		default:
+			fmt.Fprintln(out, "Will be created.")
 		}
-		if n := len(dest.SameTitle); n > 0 {
-			fmt.Fprintf(out, "note: %d playlist(s) on your channel are already called %q but were not created by Soundsync.\n", n, src.Name)
-			fmt.Fprintln(out, "      A separate playlist will be created; adopting an existing one comes in a later version.")
-		}
-		fmt.Fprintln(out, "Will be created.")
-		toCreate = append(toCreate, src)
+		todo = append(todo, d)
 	}
 
-	if len(toCreate) == 0 {
+	if len(todo) == 0 {
 		fmt.Fprintln(out, "\nNothing to create.")
 		fmt.Fprintf(out, "%s Quota used this session: %d units.\n", youtubeAttribution, yt.client.UnitsUsed())
 		return nil
 	}
 
-	fmt.Fprintf(out, "\nAbout to create %d playlist(s) on channel %q (privacy: %s):\n", len(toCreate), yt.channel.Title, opts.privacy)
-	for _, src := range toCreate {
-		fmt.Fprintf(out, "  %s\n", src.Name)
+	fmt.Fprintf(out, "\nAbout to change %d playlist(s) on channel %q: %d units (used so far: %d).\n",
+		len(todo), yt.channel.Title, youtube.WriteUnits*len(todo), yt.client.UnitsUsed())
+	for _, d := range todo {
+		fmt.Fprintf(out, "  %q: %s\n", d.src.Name, d.destAction(opts.privacy))
 	}
-	fmt.Fprintf(out, "  quota: %d units (used so far: %d)\n", 50*len(toCreate), yt.client.UnitsUsed())
-	question := "Create it?"
-	if len(toCreate) > 1 {
-		question = "Create them?"
-	}
-	if !opts.yes && !a.confirm(out, question) {
-		fmt.Fprintln(out, "Cancelled. Nothing was created.")
+	if !opts.yes && !a.confirm(out, "Go ahead?") {
+		fmt.Fprintln(out, "Cancelled. Nothing was changed.")
 		return nil
 	}
 
-	for _, src := range toCreate {
-		created, err := yt.client.CreatePlaylist(ctx, src.Name, transfer.Description(src.ID), opts.privacy)
-		if err != nil {
+	for _, d := range todo {
+		if err := ensureDestination(ctx, yt.client, d, opts.privacy); err != nil {
 			return explainQuota(err)
 		}
-		fmt.Fprintf(out, "\nCreated %q (%s).\n  %s\n  %s\n", created.Title, created.Privacy, created.URL(), created.MusicURL())
+		if d.kind == destCreate {
+			fmt.Fprintf(out, "\nCreated %q (%s).\n  %s\n  %s\n", d.target.Title, d.target.Privacy, d.target.URL(), d.target.MusicURL())
+		} else {
+			fmt.Fprintf(out, "\n%q now carries the Soundsync line; Soundsync will keep it in sync.\n  %s\n", d.target.Title, d.target.MusicURL())
+		}
 	}
 	fmt.Fprintf(out, "%s Quota used this session: %d units.\n", youtubeAttribution, yt.client.UnitsUsed())
 	return nil

@@ -20,6 +20,19 @@ func TestDescriptionCarriesMarker(t *testing.T) {
 	}
 }
 
+func TestAdoptedDescriptionKeepsUserText(t *testing.T) {
+	got := AdoptedDescription("My covers\nsince 2019\n", spID)
+	if !strings.HasPrefix(got, "My covers\nsince 2019\n\n") {
+		t.Errorf("user text altered: %q", got)
+	}
+	if ids := MarkerIDs(got); len(ids) != 1 || ids[0] != spID {
+		t.Errorf("marker missing: %q", got)
+	}
+	if got := AdoptedDescription("  ", spID); got != keepMarkerHint+Marker(spID) {
+		t.Errorf("blank description: %q", got)
+	}
+}
+
 func TestMarkerIDsExactID(t *testing.T) {
 	// A longer ID must not match a shorter one by prefix.
 	ids := MarkerIDs("notes\nsoundsync:spotify:" + spID + "XYZ\nmore")

@@ -27,17 +27,50 @@ type fakeYouTube struct {
 
 	search      map[string][]map[string]any // query -> search items
 	searches    int
-	items       map[string][]string // playlist ID -> video IDs
+	items       map[string][]fakeItem // playlist ID -> entries
 	itemInserts int
 	failItemAt  int // from this 1-based playlistItems.insert on, quota is exhausted (like YouTube); 0 = never
+	failSearch  int // from this 1-based search on, the search bucket is empty; 0 = never
+	deletes     int
+	updates     int               // playlists.update calls
+	lengths     map[string]string // video ID -> ISO 8601 duration served by videos.list
 }
 
-// videos returns a copy of a playlist's videos. Tests must read through it:
+type fakeItem struct{ id, videoID, title, channel string }
+
+// seed puts videos (id, title pairs) in a playlist before the test runs.
+func (f *fakeYouTube) seed(playlistID string, idTitle ...string) {
+	if f.items == nil {
+		f.items = map[string][]fakeItem{}
+	}
+	for i := 0; i+1 < len(idTitle); i += 2 {
+		f.items[playlistID] = append(f.items[playlistID], fakeItem{id: "seed-" + idTitle[i], videoID: idTitle[i], title: idTitle[i+1]})
+	}
+}
+
+// videos returns a copy of a playlist's video IDs. Tests must read through it:
 // a request cancelled on the client side may still be handled afterwards.
 func (f *fakeYouTube) videos(playlistID string) []string {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return append([]string(nil), f.items[playlistID]...)
+	var ids []string
+	for _, it := range f.items[playlistID] {
+		ids = append(ids, it.videoID)
+	}
+	return ids
+}
+
+// snippetOf finds a video's title and channel among the search results.
+func (f *fakeYouTube) snippetOf(videoID string) (title, channel string) {
+	for _, results := range f.search {
+		for _, r := range results {
+			if r["id"].(map[string]string)["videoId"] == videoID {
+				sn := r["snippet"].(map[string]string)
+				return sn["title"], sn["channelTitle"]
+			}
+		}
+	}
+	return videoID, ""
 }
 
 // counts returns the number of searches and playlist item inserts so far.
@@ -53,13 +86,36 @@ func (f *fakeYouTube) handler(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case r.Method == http.MethodGet && r.URL.Path == "/search":
 		f.searches++
+		if f.failSearch > 0 && f.searches >= f.failSearch {
+			w.WriteHeader(http.StatusForbidden)
+			w.Write([]byte(`{"error":{"code":403,"message":"quota","errors":[{"reason":"quotaExceeded"}]}}`))
+			return
+		}
 		json.NewEncoder(w).Encode(map[string]any{"items": f.search[r.URL.Query().Get("q")]})
 	case r.Method == http.MethodGet && r.URL.Path == "/playlistItems":
 		var items []map[string]any
-		for _, id := range f.items[r.URL.Query().Get("playlistId")] {
-			items = append(items, map[string]any{"contentDetails": map[string]string{"videoId": id}})
+		for _, it := range f.items[r.URL.Query().Get("playlistId")] {
+			items = append(items, map[string]any{
+				"id":             it.id,
+				"snippet":        map[string]string{"title": it.title, "videoOwnerChannelTitle": it.channel},
+				"contentDetails": map[string]string{"videoId": it.videoID},
+			})
 		}
 		json.NewEncoder(w).Encode(map[string]any{"items": items})
+	case r.Method == http.MethodDelete && r.URL.Path == "/playlistItems":
+		id := r.URL.Query().Get("id")
+		for pl, list := range f.items {
+			for i, it := range list {
+				if it.id == id {
+					f.items[pl] = append(list[:i:i], list[i+1:]...)
+					f.deletes++
+					w.WriteHeader(http.StatusNoContent)
+					return
+				}
+			}
+		}
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(`{"error":{"code":404,"message":"not found","errors":[{"reason":"playlistItemNotFound"}]}}`))
 	case r.Method == http.MethodPost && r.URL.Path == "/playlistItems":
 		f.itemInserts++
 		if f.failItemAt > 0 && f.itemInserts >= f.failItemAt {
@@ -77,10 +133,35 @@ func (f *fakeYouTube) handler(w http.ResponseWriter, r *http.Request) {
 		}
 		json.NewDecoder(r.Body).Decode(&body)
 		if f.items == nil {
-			f.items = map[string][]string{}
+			f.items = map[string][]fakeItem{}
 		}
-		f.items[body.Snippet.PlaylistID] = append(f.items[body.Snippet.PlaylistID], body.Snippet.ResourceID.VideoID)
+		vid := body.Snippet.ResourceID.VideoID
+		title, channel := f.snippetOf(vid)
+		f.items[body.Snippet.PlaylistID] = append(f.items[body.Snippet.PlaylistID], fakeItem{id: fmt.Sprintf("item%d", f.itemInserts), videoID: vid, title: title, channel: channel})
 		w.Write([]byte(`{"id":"item"}`))
+	case r.Method == http.MethodGet && r.URL.Path == "/videos":
+		var items []map[string]any
+		for _, id := range strings.Split(r.URL.Query().Get("id"), ",") {
+			if d, ok := f.lengths[id]; ok {
+				items = append(items, map[string]any{"id": id, "contentDetails": map[string]string{"duration": d}})
+			}
+		}
+		json.NewEncoder(w).Encode(map[string]any{"items": items})
+	case r.Method == http.MethodPut && r.URL.Path == "/playlists":
+		var body struct {
+			ID      string            `json:"id"`
+			Snippet map[string]string `json:"snippet"`
+		}
+		json.NewDecoder(r.Body).Decode(&body)
+		for _, p := range f.playlists {
+			if p["id"] == body.ID {
+				p["snippet"] = body.Snippet
+				f.updates++
+				json.NewEncoder(w).Encode(p)
+				return
+			}
+		}
+		http.NotFound(w, r)
 	case r.Method == http.MethodGet && r.URL.Path == "/playlists":
 		json.NewEncoder(w).Encode(map[string]any{"items": f.playlists})
 	case r.Method == http.MethodPost && r.URL.Path == "/playlists":
@@ -105,16 +186,16 @@ func fakeLibraryAPI(t *testing.T) *spotify.Client {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/playlists/5ZwLvrI8d6VnEQXxB0bMms/items" {
 			w.Write([]byte(`{"items":[
-				{"item":{"type":"track","id":"1Onx","name":"The Way (feat. Mac Miller)","artists":[{"name":"Ariana Grande"},{"name":"Mac Miller"}]}},
+				{"item":{"type":"track","id":"1Onx","name":"The Way (feat. Mac Miller)","duration_ms":227000,"artists":[{"name":"Ariana Grande"},{"name":"Mac Miller"}]}},
 				{"item":{"type":"episode","id":"ep","name":"A podcast"}},
-				{"item":{"type":"track","id":"66wk","name":"My Favorite Part","artists":[{"name":"Mac Miller"},{"name":"Ariana Grande"}]}}
+				{"item":{"type":"track","id":"66wk","name":"My Favorite Part","duration_ms":215000,"artists":[{"name":"Mac Miller"},{"name":"Ariana Grande"}]}}
 			],"next":null}`))
 			return
 		}
 		if r.URL.Path == "/playlists/3yQi6hff0Ic45VJfJoaXIn/items" {
 			w.Write([]byte(`{"items":[
-				{"item":{"type":"track","id":"c1","name":"Hallelujah","artists":[{"name":"Jeff Buckley"}]}},
-				{"item":{"type":"track","id":"c2","name":"Hurt","artists":[{"name":"Johnny Cash"}]}}
+				{"item":{"type":"track","id":"c1","name":"Hallelujah","duration_ms":413000,"artists":[{"name":"Jeff Buckley"}]}},
+				{"item":{"type":"track","id":"c2","name":"Hurt","duration_ms":218000,"artists":[{"name":"Johnny Cash"}]}}
 			],"next":null}`))
 			return
 		}
@@ -184,7 +265,7 @@ func TestYouTubeCreateFlow(t *testing.T) {
 	}
 
 	for _, want := range []string{
-		"Cancelled. Nothing was created.",
+		"Cancelled. Nothing was changed.",
 		`Created "The Way to My Favorite Part" (private).`,
 		"https://music.youtube.com/playlist?list=PLfake1",
 		"Already on YouTube as",
@@ -196,7 +277,7 @@ func TestYouTubeCreateFlow(t *testing.T) {
 			t.Errorf("stdout missing %q:\n%s", want, got)
 		}
 	}
-	if n := strings.Count(got, "Create it?"); n != 2 {
+	if n := strings.Count(got, "Go ahead?"); n != 2 {
 		t.Errorf("confirmation asked %d times, want 2:\n%s", n, got)
 	}
 	if !strings.Contains(errOut.String(), "belongs to another user") {
@@ -212,7 +293,7 @@ func TestYouTubeCreateYesSkipsPromptAndHonoursPrivacy(t *testing.T) {
 	if err := runShell(a, in, &out, &errOut); err != nil {
 		t.Fatal(err)
 	}
-	if yt.inserts != 1 || strings.Contains(out.String(), "Create it?") {
+	if yt.inserts != 1 || strings.Contains(out.String(), "Go ahead?") {
 		t.Fatalf("want one insert without prompt:\n%s\n%s", out.String(), errOut.String())
 	}
 	if p := yt.playlists[0]["status"].(map[string]string)["privacyStatus"]; p != "unlisted" {

@@ -54,11 +54,19 @@ Inside the shell:
 | `spotify playlists` | List your Spotify library (owned, collaborative, followed) |
 | `spotify tracks <playlist>` | List a playlist's tracks; accepts a name, ID, link or `spotify:` URI |
 | `youtube playlists` | List your YouTube playlists and which ones Soundsync created |
-| `youtube create <playlist>... [-y] [--privacy private\|unlisted\|public]` | Create empty YouTube playlists (private by default); reuses existing ones by their marker |
-| `youtube add <playlist>... [--limit N] [-y]` | Search each track, show the matches, ask once, then add only what is missing; several playlists run in parallel |
+| `youtube create <playlist>... [-y] [--privacy private\|unlisted\|public]` | Only get the YouTube playlists ready, without tracks: create them (private by default) or reuse one with the same title |
+| `youtube add <playlist>... [-y] [--privacy …] [--max-searches N] [--limit N] [--report file.csv\|.json]` | Copy playlists: create or reuse each YouTube playlist, add what is missing, remove videos no Spotify track matches. Shows everything and asks once before writing; several playlists run in parallel |
 | `login spotify` / `login youtube` | Log in and show the connected account or channel |
 | `exit` | Leave; Google access is revoked, nothing is stored on disk |
 
 Each argument is one playlist; quote names with spaces: `youtube add "The Way to My Favorite Part" Covers`.
 
-Matching prefers the artist's `- Topic` channel (album audio), then VEVO, then the first result. YouTube quota (October 2026): 100 searches and 10,000 units per day per Google Cloud project; adding a video costs 50 units. Progress and open items: [docs/todo.md](docs/todo.md).
+Matching prefers the artist's `- Topic` channel (album audio), then VEVO, then the first result. A track whose video is already in the playlist (same title, artist and length) needs no search, so a long playlist keeps advancing day after day. If you replaced a video by hand, Soundsync keeps yours.
+
+YouTube quota (October 2026): 100 searches and 10,000 units per day per Google Cloud project; every write (create, add, remove) costs 50 units. When the searches run out, what was found is still written and the rest waits for the next run (`--max-searches` sets a lower budget).
+
+## Privacy
+
+Soundsync asks you to accept its [privacy policy](PRIVACY.md) once, before the first login. Nothing from Spotify or YouTube is stored on your computer.
+
+Progress and open items: [docs/todo.md](docs/todo.md).

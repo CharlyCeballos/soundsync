@@ -60,24 +60,42 @@ func TestAddVideoBody(t *testing.T) {
 	}
 }
 
-func TestPlaylistVideoIDsPaginates(t *testing.T) {
+func TestPlaylistItemsPaginates(t *testing.T) {
 	srv := serve(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Query().Get("playlistId") != "PL1" || r.URL.Query().Get("part") != "contentDetails" {
+		if r.URL.Query().Get("playlistId") != "PL1" || r.URL.Query().Get("part") != "snippet,contentDetails" {
 			http.Error(w, "bad", http.StatusBadRequest)
 			return
 		}
 		if r.URL.Query().Get("pageToken") == "" {
-			w.Write([]byte(`{"items":[{"contentDetails":{"videoId":"a"}}],"nextPageToken":"P2"}`))
+			w.Write([]byte(`{"items":[{"id":"i1","snippet":{"title":"Rock &amp; Roll"},"contentDetails":{"videoId":"a"}}],"nextPageToken":"P2"}`))
 			return
 		}
-		w.Write([]byte(`{"items":[{"contentDetails":{"videoId":"b"}},{"contentDetails":{}}]}`))
+		w.Write([]byte(`{"items":[{"id":"i2","snippet":{"title":"Deleted video"},"contentDetails":{"videoId":"b"}},{"id":"i3","contentDetails":{}}]}`))
 	})
 	c := NewClient(srv.Client()).WithBaseURL(srv.URL)
-	ids, err := c.PlaylistVideoIDs(context.Background(), "PL1")
+	items, err := c.PlaylistItems(context.Background(), "PL1")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(ids) != 2 || ids[0] != "a" || ids[1] != "b" || c.UnitsUsed() != 2 {
-		t.Errorf("ids=%v units=%d", ids, c.UnitsUsed())
+	want := []Item{{ID: "i1", VideoID: "a", Title: "Rock & Roll"}, {ID: "i2", VideoID: "b", Title: "Deleted video"}}
+	if len(items) != 2 || items[0] != want[0] || items[1] != want[1] || c.UnitsUsed() != 2 {
+		t.Errorf("items=%+v units=%d", items, c.UnitsUsed())
+	}
+}
+
+func TestDeleteItem(t *testing.T) {
+	srv := serve(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete || r.URL.Path != "/playlistItems" || r.URL.Query().Get("id") != "item1" {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+	c := NewClient(srv.Client()).WithBaseURL(srv.URL)
+	if err := c.DeleteItem(context.Background(), "item1"); err != nil {
+		t.Fatal(err)
+	}
+	if c.UnitsUsed() != 50 {
+		t.Errorf("units = %d, want 50", c.UnitsUsed())
 	}
 }
