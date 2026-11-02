@@ -170,6 +170,9 @@ export function useFlow() {
     },
     async disconnectSpotify() {
       await Accounts.DisconnectSpotify().catch((err: unknown) => setError(messageOf(err)));
+      // Forget the account before the list: with the account still known and
+      // no list, step 1 would ask for the playlists of a session that is gone.
+      setStatus((s) => (s ? { ...s, spotify: null } : s));
       setPlaylists(null);
       setSelected([]);
       resetCopy();
@@ -193,6 +196,7 @@ export function useFlow() {
     },
     async disconnectYouTube() {
       await Accounts.DisconnectYouTube().catch((err: unknown) => setError(messageOf(err)));
+      setStatus((s) => (s ? { ...s, youtube: null } : s));
       resetCopy();
       await refreshStatus();
     },

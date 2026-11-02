@@ -60,6 +60,21 @@ test("copies two playlists, keeping each brand in its own view", async ({ page, 
   await expect(page.getByText("Choose at least one playlist.")).toBeVisible();
 });
 
+// Found in the real-account test: disconnecting showed "connect Spotify first".
+test("disconnecting goes back to a clean connect screen", async ({ page }) => {
+  await english(page);
+  await chooseAndReview(page, ["Covers"]);
+  await expect(page.getByText("Already on YouTube")).toBeVisible();
+  await page.getByRole("button", { name: "Disconnect" }).click();
+  await expect(page.getByRole("button", { name: "Connect YouTube" })).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveCount(0);
+
+  await page.getByRole("button", { name: /Choose playlists/ }).click();
+  await page.getByRole("button", { name: "Disconnect" }).click();
+  await expect(page.getByRole("heading", { name: "Connect your Spotify account" })).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveCount(0);
+});
+
 test("a second run finds everything up to date", async ({ page }) => {
   await english(page);
   await chooseAndReview(page, ["Covers"]);
