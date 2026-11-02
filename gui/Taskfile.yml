@@ -5,12 +5,8 @@ version: '3'
 vars:
   APP_NAME: soundsync-gui
   BIN_DIR: bin
-  VERSION: '{{.VERSION | default "dev"}}'
   VITE_PORT: '{{.WAILS_VITE_PORT | default 9245}}'
   GOOS: '{{.GOOS | default OS}}'
-  # DEV=true keeps the console and debug symbols, for `wails3 dev`.
-  TAGS: '{{if eq .DEV "true"}}{{else}}production{{end}}'
-  LDFLAGS: '-X main.version={{.VERSION}}{{if ne .DEV "true"}} -w -s{{end}}'
 
 tasks:
   frontend:deps:
@@ -23,7 +19,7 @@ tasks:
   bindings:
     summary: Generates the TypeScript bindings of the Go services
     cmds:
-      - wails3 generate bindings -clean=true -ts -i -f '-tags {{.TAGS}}'
+      - wails3 generate bindings -clean=true -ts -i -f '-tags production'
 
   frontend:build:
     deps: [frontend:deps, bindings]
@@ -37,12 +33,17 @@ tasks:
       # The macOS bundle is unused but always written: send it to a scratch file.
       - wails3 generate icons -input build/appicon.png -windowsfilename build/windows/icon.ico -macfilename {{.BIN_DIR}}/unused.icns
 
+  # DEV=true keeps the console, debug symbols and the debug-port hook
+  # (debugport_dev.go) for `wails3 dev`; release builds use package.sh.
   build:windows:
     deps: [frontend:build]
+    vars:
+      TAGS: '{{if eq .DEV "true"}}{{else}}production{{end}}'
+      LDFLAGS: '-X main.version={{.VERSION | default "dev"}}{{if ne .DEV "true"}} -w -s -H windowsgui{{end}}'
     cmds:
       - wails3 generate syso -arch amd64 -icon build/windows/icon.ico -manifest build/windows/wails.exe.manifest -info build/windows/info.json -out wails_windows_amd64.syso
       - defer: rm -f wails_windows_amd64.syso
-      - go build -tags "{{.TAGS}}" -trimpath -buildvcs=false -ldflags "{{.LDFLAGS}}{{if ne .DEV "true"}} -H windowsgui{{end}}" -o {{.BIN_DIR}}/{{.APP_NAME}}.exe
+      - go build -tags "{{.TAGS}}" -trimpath -buildvcs=false -ldflags "{{.LDFLAGS}}" -o {{.BIN_DIR}}/{{.APP_NAME}}.exe
     env:
       GOOS: windows
       GOARCH: amd64
@@ -50,6 +51,9 @@ tasks:
 
   build:linux:
     deps: [frontend:build]
+    vars:
+      TAGS: '{{if eq .DEV "true"}}{{else}}production{{end}}'
+      LDFLAGS: '-X main.version={{.VERSION | default "dev"}}{{if ne .DEV "true"}} -w -s{{end}}'
     cmds:
       - go build -tags "{{.TAGS}}" -trimpath -buildvcs=false -ldflags "{{.LDFLAGS}}" -o {{.BIN_DIR}}/{{.APP_NAME}}
     env:
@@ -57,9 +61,10 @@ tasks:
       CGO_ENABLED: '1'
 
   build:
-    summary: Builds the GUI for this OS (VERSION=v1.2.3 to stamp a version)
+    summary: Builds the GUI for this OS (VERSION=v1.2.3 to stamp a version, DEV=true for a debug build)
     cmds:
       - task: build:{{.GOOS}}
+        vars: { DEV: '{{.DEV}}', VERSION: '{{.VERSION}}' }
 
   run:
     deps: [build]

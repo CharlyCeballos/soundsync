@@ -71,6 +71,7 @@ func appOptions(backend *desktop.App, host shell) application.Options {
 		OnShutdown: backend.Shutdown,
 		Linux:      application.LinuxOptions{ApplicationID: appID, ProgramName: "soundsync-gui"},
 	}
+	opts.Windows.AdditionalBrowserArgs = devBrowserArgs()
 	if dir := config.Dir(); dir != "" {
 		// Keep the webview's cache with the rest of Soundsync's files, so
 		// removing that one folder removes everything.

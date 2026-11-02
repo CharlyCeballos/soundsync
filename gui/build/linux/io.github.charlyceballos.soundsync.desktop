@@ -8,6 +8,6 @@ Comment[es]=Copia tus playlists de Spotify a YouTube
 Exec=soundsync-gui
 Icon=io.github.charlyceballos.soundsync
 Terminal=false
-Categories=AudioVideo;Audio;Utility;
+Categories=AudioVideo;Audio;
 Keywords=playlist;music;copy;
 StartupWMClass=soundsync-gui

@@ -33,3 +33,34 @@ jobs:
       - name: test
         if: runner.os == 'Windows'
         run: go test ./...
+
+  # The desktop app (todo 4.6): built in Debian 13, the release it ships for,
+  # by the same script the release runs. The backend's tests run above with
+  # the rest of the module; the Playwright tests are local (they need ~/.e2e).
+  gui:
+    runs-on: ubuntu-24.04
+    container: debian:trixie@sha256:2dc419c6d7fe3dad0a2f9fd469c34cc90b0f9ba642d8fde837fe3d7d34a0e7f1
+    steps:
+      - name: system packages
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends git ca-certificates build-essential pkg-config \
+            libgtk-4-dev libwebkitgtk-6.0-dev nodejs npm wixl desktop-file-utils >/dev/null
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: gui/go.mod
+      # Pinned: go install checks the module against sum.golang.org.
+      - run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.1.0
+      - name: package and smoke-test
+        run: gui/build/package.sh v0.0.0 dist --smoke
+      - name: vet and test the shell
+        working-directory: gui
+        run: |
+          test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+          go vet .
+          go vet -tags server,e2e .
+          GOOS=windows go vet .
+          go test .
