@@ -3,35 +3,17 @@
 Único archivo de tracking. Los `planV<x>.md` no se mueven.
 
 Estado: `todo` | `doing` | `done` | `blocked`  
-Última actualización: 2026-11-01.
+Última actualización: 2026-11-02.
 
 ## Ahora
 
-Fase 1 cerrada (GO 2026-10-30, `planV2.md` escrito 2026-11-01). **Fase 2 cerrada 2026-11-01** (autor): todos los ítems done; pruebas unit, integración, CI y reales en verde (solo T.7 sigue todo: sin playlists colaborativas). **Fase 3: todos los ítems done** (cierre = decisión del autor). Release `v0.1.0` en borrador (D.2). Ya se puede re-correr `youtube add` sobre "The Way" y "Covers" (2.17 conserva la corrección manual; verificado en real 2026-11-01). Playlists privadas de prueba **"Soundsync test"** (Spotify: Bohemian Rhapsody, Billie Jean, Take on Me; YouTube: igual): pendiente que el autor las borre ahora que la fase cerró. Repo en `github.com/CharlyCeballos/soundsync` (aún PRIVATE, ver D.1).
+Fase 1 cerrada (GO 2026-10-30, `planV2.md` escrito 2026-11-01). **Fase 2 cerrada 2026-11-01** (autor): todos los ítems done; pruebas unit, integración, CI y reales en verde (solo T.7 sigue todo: sin playlists colaborativas). **Fase 3 cerrada 2026-11-02** (autor): todos los ítems done; `v0.1.0` publicado (D.2) y probado como usuario nuevo en Windows 11 y en Debian 13. Ya se puede re-correr `youtube add` sobre "The Way" y "Covers" (2.17 conserva la corrección manual; verificado en real 2026-11-01). Playlists privadas de prueba **"Soundsync test"** (Spotify: Bohemian Rhapsody, Billie Jean, Take on Me; YouTube: igual): el autor las conserva para pruebas futuras (decisión 2026-11-02). Repo en `github.com/CharlyCeballos/soundsync` (aún PRIVATE, ver D.1).
 
-### Primero al retomar (anotado 2026-11-01, al terminar fase 3)
-
-Revisar esto antes de seguir con la fase 4. Marcar `[x]` lo hecho y borrar el bloque cuando quede vacío.
-
-**Carlos tiene que hacer:**
-
-- [ ] **Publicar o borrar el release borrador `v0.1.0`** (D.2). Revisarlo en https://github.com/CharlyCeballos/soundsync/releases (notas autogeneradas, 3 archivos). Publicar: `gh release edit v0.1.0 --draft=false`. Borrar si algo está mal: `gh release delete v0.1.0 --cleanup-tag`.
-- [ ] **Decidir si la fase 3 queda cerrada** (todos sus ítems están done).
-- [ ] **Borrar las playlists de prueba "Soundsync test"** en Spotify y en YouTube (pendiente desde la fase 2).
-- [ ] **Validar o cambiar la decisión de no subir `privacyPolicyVersion`** (decisión de Claude). `PRIVACY.md` ahora dice que GitHub ve la IP y la versión de Soundsync en el aviso de versión. La versión que aceptaste ya anunciaba ese chequeo sin datos tuyos. Si lo consideras un cambio material, sube la constante en `cmd/soundsync/privacy.go` y la línea "Version" de `PRIVACY.md`; todos tendrán que aceptarla de nuevo.
-- [ ] **Probar el zip como usuario nuevo en tu Windows** (opcional, recomendado):
-  1. Descomprimir `soundsync_0.1.0_windows_amd64.zip` en una carpeta fuera del repo.
-  2. Copiar tu `.env` a `%APPDATA%\soundsync\.env`.
-  3. Correr `soundsync.exe config check`: debe leer ese archivo.
-  4. Correr `soundsync.exe shell` y hacer un login real.
-  5. Anotar qué muestra SmartScreen o Defender.
-- [ ] **Probar el `.deb` en un Debian/Ubuntu real**, si tienes uno: `sudo apt install ./soundsync_0.1.0_amd64.deb`, `.env` en `~/.config/soundsync/.env`, `soundsync config check`, login (abre el navegador con `xdg-open`).
+### Riesgos abiertos (al cerrar la fase 3, 2026-11-02)
 
 **No probado (riesgo abierto):**
 
-- `.deb` instalado en un Debian real: solo el smoke test del runner de CI (`dpkg -i` + `soundsync version`). Login con `xdg-open` en Linux nunca probado.
-- Advertencia de SmartScreen y comportamiento de Defender con el exe sin firma.
-- Login real con un binario de release. Los logins reales se hicieron con `go run`. El fallback a `%APPDATA%\soundsync\.env` solo se probó con valores falsos y `config check`.
+- Smart App Control: en un Windows 11 instalado de cero que lo tenga encendido, un exe sin firma probablemente se bloquea sin opción de ejecutarlo de todos modos. No se puede probar aquí (está apagado). Considerar una línea en el README.
 - Aviso de versión mostrando una versión nueva contra GitHub real. Solo se probó con servidor falso (8 casos). En real solo se vio el caso 404 (repo privado → silencio). Se podrá probar cuando el repo sea público y exista un release mayor que el instalado.
 - T.7: playlist colaborativa de Spotify (no hay ninguna en la cuenta del autor).
 
@@ -98,15 +80,15 @@ Revisar esto antes de seguir con la fase 4. Marcar `[x]` lo hecho y borrar el bl
 | 2.18 | Evaluar más resultados por búsqueda | done | Medido 2026-11-01 (9 búsquedas de 50 resultados sobre los casos reales no-Topic + 1 control). **Subir resultados con `Pick` actual empeora 5/8**: Tenacious D → original de Britney (VEVO #39), Mentiras → Topic de otro elenco, Carla Morrison → otra canción (Jorge Morel - Topic), Queen y Air Supply → versiones en vivo (Topic). Mejora solo Ariana Grande (Topic propio #11) y Jenni Rivera (#20). Decisión autor 2026-11-01: **variante segura implementada**. `SearchResults` = 50 (mismo costo): primero `match.OwnTopics` (canal `<primer artista> - Topic`, título con el nombre, sin versiones en vivo si el track no lo es) + duración ±5 s (`videos.list`, +1 unit); si no hay, `Pick` sobre los primeros 5 (`TopResults`). Con los datos medidos solo cambian Ariana Grande y Jenni Rivera (a su Topic). Helpers de "misma canción" (`CoreTitle`, `SameLength`, `Squash`) movidos a `internal/match`. Prueba real 2026-11-01 (T.5): "Take on Me" de a-ha → su Topic propio |
 | 2.19 | Transferencias de varios días sin re-buscar | done | 2026-11-01, decisión autor: **título + artista + duración**. Sin estado entre corridas, re-correr otro día re-buscaba lo ya copiado (una playlist >100 tracks nunca avanzaba). `transfer.PreMatch`: antes de buscar, un video ya en la playlist cuenta como el track si su título contiene el nombre (núcleo), su título o canal contiene el primer artista (sin espacios) y su duración (`videos.list`, 1 unit/50) está a ±5 s. Lo demás se busca. El conteo de búsquedas se imprime exacto antes de buscar. Prueba real (sesión nueva): 2/3 sin búsqueda (Topic); el video oficial de Bohemian Rhapsody falló duración → 1 búsqueda → ya presente, sin duplicar |
 
-## Fase 3 — Empaque CLI
+## Fase 3 — Empaque CLI (cerrada 2026-11-02)
 
 | ID | Item | Estado | Notas |
 |---|---|---|---|
-| 3.1 | GitHub Actions: Windows amd64 exe | done | 2026-11-01. `.github/workflows/release.yml` (decisión autor: workflow propio, 0 deps): tag `vX.Y.Z` → `go vet` + `go test` → `CGO_ENABLED=0 -trimpath -X main.version=$TAG` → `soundsync_<ver>_windows_amd64.zip` (exe + LICENSE + `.env.example`) + `SHA256SUMS` → release **borrador** (`gh release create --draft`; el autor publica a mano). Tag por env, no interpolado; `contents: write` solo en ese job; mismas actions por SHA que `ci.yml`. Unsigned. **1ª corrida real 2026-11-01 (tag `v0.1.0`) verde al 1er intento**: borrador con zip (6.2 MB), deb (5.5 MB), `SHA256SUMS`; bajado con `gh release download`, `sha256sum -c` OK, zip = exe + LICENSE + `.env.example`, `soundsync.exe version` = `v0.1.0 (go1.26.0, windows/amd64)`, shell sin aviso (404, repo privado) |
-| 3.2 | GitHub Actions: `.deb` amd64 | done | 2026-11-01. Mismo workflow: `dpkg-deb --root-owner-group` → `/usr/bin/soundsync`, `/usr/share/doc/soundsync/{copyright,env.example}`, `Recommends: xdg-utils` (login abre el navegador con `xdg-open`). Smoke en el runner: `dpkg -i` + `soundsync version` = tag. `.env` del binario instalado: `./.env` y si no existe `<UserConfigDir>/soundsync/.env` (decisión autor; `config check` dice cuál leyó, probado con `APPDATA` temporal). Corrida real `v0.1.0`: smoke `dpkg -i` + `version` verde en el runner, checksum OK. Sin probar en un Debian real (no hay WSL/VM aquí) |
+| 3.1 | GitHub Actions: Windows amd64 exe | done | 2026-11-01. `.github/workflows/release.yml` (decisión autor: workflow propio, 0 deps): tag `vX.Y.Z` → `go vet` + `go test` → `CGO_ENABLED=0 -trimpath -X main.version=$TAG` → `soundsync_<ver>_windows_amd64.zip` (exe + LICENSE + `.env.example`) + `SHA256SUMS` → release **borrador** (`gh release create --draft`; el autor publica a mano). Tag por env, no interpolado; `contents: write` solo en ese job; mismas actions por SHA que `ci.yml`. Unsigned. **1ª corrida real 2026-11-01 (tag `v0.1.0`) verde al 1er intento**: borrador con zip (6.2 MB), deb (5.5 MB), `SHA256SUMS`; bajado con `gh release download`, `sha256sum -c` OK, zip = exe + LICENSE + `.env.example`, `soundsync.exe version` = `v0.1.0 (go1.26.0, windows/amd64)`, shell sin aviso (404, repo privado). **Prueba como usuario nuevo el 2026-11-02** (Windows 11 del autor): el zip bajado del release pasa `SHA256SUMS`; la descarga con Firefox no mostró aviso. SmartScreen al hacer doble clic: "Windows protected your PC", "Unknown publisher", con "Run anyway", tal como dice el README. Defender (`MpCmdRun -Scan -ScanType 3`) no encontró amenazas; Smart App Control está apagado en ese equipo. Desde una carpeta sin `.env`, `config check` leyó `%APPDATA%\soundsync\.env`. Login real en Spotify y YouTube con el exe del release, listados, y `exit` revocó Google |
+| 3.2 | GitHub Actions: `.deb` amd64 | done | 2026-11-01. Mismo workflow: `dpkg-deb --root-owner-group` → `/usr/bin/soundsync`, `/usr/share/doc/soundsync/{copyright,env.example}`, `Recommends: xdg-utils` (login abre el navegador con `xdg-open`). Smoke en el runner: `dpkg -i` + `soundsync version` = tag. `.env` del binario instalado: `./.env` y si no existe `<UserConfigDir>/soundsync/.env` (decisión autor; `config check` dice cuál leyó, probado con `APPDATA` temporal). Corrida real `v0.1.0`: smoke `dpkg -i` + `version` verde en el runner, checksum OK. **Probado el 2026-11-02 en una VM con Debian 13**: `apt install ./….deb` OK. Apt muestra el aviso "Download is performed unsandboxed as root… (13: Permiso denegado)" porque el usuario `_apt` no puede leer `~/Descargas`; es inofensivo y no sale si el `.deb` se copia antes a `/tmp`. Como usuario normal: `version` = `v0.1.0 (go1.26.0, linux/amd64)`, `config check` leyó `~/.config/soundsync/.env` y el aviso de privacidad salió en español (primera prueba real de ese aviso). Login en Spotify y YouTube, con el navegador abierto solo por `xdg-open`; listados y `exit` revocó Google |
 | 3.3 | README: build, OAuth, testers, SmartScreen | done | 2026-11-01, decisión autor: `README.md` (EN) + `README.es.md`. Para usuarios: requisitos BYO, instalar (zip + SmartScreen, `apt install ./….deb`, `SHA256SUMS`), dónde va `.env`, comandos, matching, quota, privacidad, scopes, compilar. Aviso de no afiliación, sin logos. `docs/setup.md` dice dónde crear `.env`. Requisitos de origen: ES + EN o README + README.es. Spotify: cada usuario trae su propio Client ID (BYO, no embebido en binario — Terms VI.1.2–VI.1.3), requiere Premium. No sugerir endorsement (Policy II.1); logo/ícono Soundsync sin parecido a Spotify (nada verde con ondas). Evitar logos Spotify + YouTube juntos (Design: no co-branding) |
 | 3.4 | LICENSE | done | MIT, 2026-11-01 |
-| 3.5 | Aviso de versión nueva al iniciar `shell` | done | 2026-11-01. `cmd/soundsync/update.go`: solo builds `vX.Y.Z` (`dev` no consulta), timeout 2 s, `User-Agent: soundsync/<ver>`, respuesta ≤1 MiB; versión mayor → una línea con link (solo si `html_url` es de este repo y el tag es semver: nada arbitrario a la terminal). **404 = silencio** (sin release publicado o repo privado); otro error = una línea. Tests con `httptest` (8 casos + dev). Real 2026-11-01 con build `v0.1.0`: GitHub 404 (privado) → shell sin aviso. Para terceros funciona cuando D.1 sea público. `PRIVACY.md`: GitHub ve IP + versión (sin subir la versión de la política: la aceptada ya anunciaba el chequeo) |
+| 3.5 | Aviso de versión nueva al iniciar `shell` | done | 2026-11-01. `cmd/soundsync/update.go`: solo builds `vX.Y.Z` (`dev` no consulta), timeout 2 s, `User-Agent: soundsync/<ver>`, respuesta ≤1 MiB; versión mayor → una línea con link (solo si `html_url` es de este repo y el tag es semver: nada arbitrario a la terminal). **404 = silencio** (sin release publicado o repo privado); otro error = una línea. Tests con `httptest` (8 casos + dev). Real 2026-11-01 con build `v0.1.0`: GitHub 404 (privado) → shell sin aviso. Para terceros funciona cuando D.1 sea público. `PRIVACY.md`: GitHub ve IP + versión. La versión de la política subió a `2026-11-02` (decisión del autor, 2026-11-02). Aplica desde el próximo release: el binario `v0.1.0` sigue pidiendo `2026-11-01` |
 
 ## Fase 4 — GUI (Wails v3 + React)
 
@@ -138,7 +120,7 @@ Revisar esto antes de seguir con la fase 4. Marcar `[x]` lo hecho y borrar el bl
 | ID | Item | Estado | Notas |
 |---|---|---|---|
 | D.1 | Repo GitHub público | doing | 2026-11-01: `github.com/CharlyCeballos/soundsync` creado y pusheado, module path actualizado, `.gitattributes` LF. Visibilidad **PRIVATE**: decisión autor 2026-11-01, **público después de la fase 4**. Historial revisado 2026-11-01: las credenciales reales del `.env` no aparecen en ningún commit (solo fixtures de test) |
-| D.2 | Release CLI Windows + deb | doing | 2026-11-01: `v0.1.0` creado como **borrador** (privado) por el workflow de 3.1/3.2. Falta que el autor lo revise y lo publique (`gh release edit v0.1.0 --draft=false` o desde la web) |
+| D.2 | Release CLI Windows + deb | done | 2026-11-01: `v0.1.0` creado como **borrador** por el workflow de 3.1/3.2. Publicado por el autor el 2026-11-02; mientras el repo sea privado (D.1), solo él lo ve |
 | D.3 | Release GUI msi + deb | todo | Tras fase 4 |
 | D.4 | Privacy policy URL (`PRIVACY.md` en repo público) | doing | 2026-11-01: `PRIVACY.md` escrito (usa YouTube API Services, qué lee/escribe/guarda, revocar, contacto) y enlazado desde README y el aviso de primer uso. El link solo funciona para terceros cuando el repo sea público (D.1) |
 
@@ -150,6 +132,8 @@ _Ninguno registrado._
 
 | Fecha | Qué |
 |---|---|
+| 2026-11-02 | **Fase 3 cerrada** (decisión del autor). Las playlists "Soundsync test" se quedan para pruebas. Sigue la fase 4. |
+| 2026-11-02 | `v0.1.0` publicado (D.2 done). `privacyPolicyVersion` → `2026-11-02` (decisión del autor). Zip del release probado en Windows: checksum, `.env` desde `%APPDATA%`, login real Spotify + YouTube, Defender limpio, SmartScreen ("Unknown publisher" → "Run anyway") igual a lo que dice el README. `.deb` probado en una VM con Debian 13: `apt install`, `.env` desde `~/.config`, aviso de privacidad, login con `xdg-open` en Spotify + YouTube. |
 | 2026-11-01 | Fase 3: tag `v0.1.0` → workflow de release verde al 1er intento (vet, test, build, zip, deb + smoke, checksums, borrador). CI de main verde. 3.1 y 3.2 done. |
 | 2026-11-01 | Fase 3 arranca. Design doc `docs/specs/2026-11-01-phase3-packaging-design.md` aprobado. Decisiones del autor: `.env` actual → carpeta de usuario, tag → release borrador, README EN + ES, workflow propio sin deps, repo público después de fase 4. Hechos 3.3 y 3.5; 3.1/3.2 escritos, falta 1ª corrida real. |
 | 2026-11-01 | **Fase 2 cerrada** (decisión del autor). Sigue fase 3. |
