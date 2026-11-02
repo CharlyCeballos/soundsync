@@ -24,15 +24,30 @@ var privacyNoticeRE = regexp.MustCompile("(?s)const privacyNotice = `(.*?)`")
 // identical lists messages whose Spanish is the same text.
 var identical = map[string]bool{"OK": true, "Error: %v\n": true, "  %d. %q (%s, %d videos) %s\n": true, "%q (%d videos)": true}
 
-func cliMessages(t *testing.T) []string {
+// messageSources are the folders whose code shows messages to the user: the
+// CLI, every internal package (i18n itself excluded) and the GUI shell.
+var messageSources = []string{
+	filepath.Join("..", "..", "cmd", "soundsync", "*.go"),
+	filepath.Join("..", "*", "*.go"),
+	filepath.Join("..", "..", "gui", "*.go"),
+}
+
+func sourceMessages(t *testing.T) []string {
 	t.Helper()
-	files, err := filepath.Glob(filepath.Join("..", "..", "cmd", "soundsync", "*.go"))
-	if err != nil || len(files) == 0 {
-		t.Fatalf("no CLI sources found: %v", err)
+	var files []string
+	for _, pattern := range messageSources {
+		matches, err := filepath.Glob(pattern)
+		if err != nil {
+			t.Fatal(err)
+		}
+		files = append(files, matches...)
+	}
+	if len(files) == 0 {
+		t.Fatal("no sources found")
 	}
 	var msgs []string
 	for _, f := range files {
-		if strings.HasSuffix(f, "_test.go") {
+		if strings.HasSuffix(f, "_test.go") || filepath.Base(filepath.Dir(f)) == "i18n" {
 			continue
 		}
 		src, err := os.ReadFile(f)
@@ -66,11 +81,11 @@ func verbs(s string) []string {
 	return out
 }
 
-func TestEveryCLIMessageHasSpanish(t *testing.T) {
+func TestEveryMessageHasSpanish(t *testing.T) {
 	letters := regexp.MustCompile(`[A-Za-z]{2}`)
-	msgs := cliMessages(t)
+	msgs := sourceMessages(t)
 	if len(msgs) < 140 {
-		t.Fatalf("found only %d messages: the source patterns no longer match the CLI code", len(msgs))
+		t.Fatalf("found only %d messages: the source patterns no longer match the code", len(msgs))
 	}
 	for _, msg := range msgs {
 		if !letters.MatchString(msg) {
@@ -99,7 +114,7 @@ func TestFromLocale(t *testing.T) {
 }
 
 func TestSetAndTranslatedErrors(t *testing.T) {
-	t.Cleanup(func() { current = EN })
+	t.Cleanup(func() { Set(EN) })
 	if err := Set("fr"); err == nil {
 		t.Error("unsupported language must fail")
 	}

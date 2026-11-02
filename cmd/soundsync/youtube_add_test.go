@@ -6,54 +6,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/CharlyCeballos/soundsync/internal/fakeapi"
 	"github.com/CharlyCeballos/soundsync/internal/i18n"
 	"github.com/CharlyCeballos/soundsync/internal/transfer"
 )
-
-const (
-	wayID    = "5ZwLvrI8d6VnEQXxB0bMms"
-	coversID = "3yQi6hff0Ic45VJfJoaXIn"
-)
-
-func video(id, title, channel string) map[string]any {
-	return map[string]any{
-		"id":      map[string]string{"videoId": id},
-		"snippet": map[string]string{"title": title, "channelTitle": channel},
-	}
-}
-
-func ytPlaylist(id, title, spotifyID string) map[string]any {
-	return map[string]any{
-		"id":      id,
-		"snippet": map[string]string{"title": title, "description": transfer.Description(spotifyID)},
-		"status":  map[string]string{"privacyStatus": "private"},
-	}
-}
-
-// newAddFake seeds a channel that already has both Soundsync playlists.
-func newAddFake() *fakeYouTube {
-	return &fakeYouTube{
-		playlists: []map[string]any{
-			ytPlaylist("PLway", "The Way to My Favorite Part", wayID),
-			ytPlaylist("PLcov", "Covers", coversID),
-		},
-		search: map[string][]map[string]any{
-			"Ariana Grande The Way (feat. Mac Miller)": {
-				video("vevoV", "The Way (Official Video)", "ArianaGrandeVevo"),
-				video("lyricV", "The Way lyrics", "Lyrics Hub"),
-				video("topicV", "The Way", "Ariana Grande - Topic"),
-			},
-			"Mac Miller My Favorite Part": {
-				video("firstV", "Mac Miller - My Favorite Part (feat. Ariana Grande) &amp; more", "Some Uploader"),
-			},
-			"Jeff Buckley Hallelujah": {video("hallV", "Hallelujah", "Jeff Buckley - Topic")},
-			"Johnny Cash Hurt":        {video("hurtV", "Hurt", "JohnnyCashVEVO")},
-		},
-		items: map[string][]fakeItem{},
-		// Lengths match the Spotify fixture's, except the VEVO video's intro.
-		lengths: map[string]string{"topicV": "PT3M47S", "vevoV": "PT4M10S", "firstV": "PT3M35S", "hallV": "PT6M53S", "hurtV": "PT3M38S"},
-	}
-}
 
 func runLines(t *testing.T, a *app, lines ...string) (string, string) {
 	t.Helper()
@@ -74,7 +30,7 @@ func mustContain(t *testing.T, label, got string, wants ...string) {
 }
 
 func TestYouTubeAddFlowAndIdempotence(t *testing.T) {
-	yt := newAddFake()
+	yt := fakeapi.NewChannel()
 	a := newTestApp(t, yt)
 	out, errOut := runLines(t, a,
 		"youtube add Way",
@@ -85,11 +41,11 @@ func TestYouTubeAddFlowAndIdempotence(t *testing.T) {
 	)
 
 	// Topic wins over the VEVO video ranked above it.
-	if got := yt.videos("PLway"); len(got) != 2 || got[0] != "topicV" || got[1] != "firstV" {
+	if got := yt.Videos("PLway"); len(got) != 2 || got[0] != "topicV" || got[1] != "firstV" {
 		t.Fatalf("playlist videos = %v, want [topicV firstV] in Spotify order\n%s\n%s", got, out, errOut)
 	}
 	// The second run finds both tracks in the playlist: no new searches.
-	if searches, inserts := yt.counts(); inserts != 2 || searches != 2 {
+	if searches, inserts := counts(yt); inserts != 2 || searches != 2 {
 		t.Errorf("inserts=%d searches=%d, want 2 and 2", inserts, searches)
 	}
 	mustContain(t, "stdout", out,
@@ -115,14 +71,14 @@ func TestYouTubeAddFlowAndIdempotence(t *testing.T) {
 }
 
 func TestYouTubeAddTwoPlaylistsInParallel(t *testing.T) {
-	yt := newAddFake()
+	yt := fakeapi.NewChannel()
 	a := newTestApp(t, yt)
 	out, errOut := runLines(t, a, "youtube add Way Covers", "y", "exit")
 
-	if got := yt.videos("PLway"); len(got) != 2 || got[0] != "topicV" || got[1] != "firstV" {
+	if got := yt.Videos("PLway"); len(got) != 2 || got[0] != "topicV" || got[1] != "firstV" {
 		t.Errorf("Way videos = %v, want [topicV firstV]", got)
 	}
-	if got := yt.videos("PLcov"); len(got) != 2 || got[0] != "hallV" || got[1] != "hurtV" {
+	if got := yt.Videos("PLcov"); len(got) != 2 || got[0] != "hallV" || got[1] != "hurtV" {
 		t.Errorf("Covers videos = %v, want [hallV hurtV]", got)
 	}
 	if n := strings.Count(out, "Go ahead?"); n != 1 {
@@ -147,15 +103,15 @@ func TestYouTubeAddTwoPlaylistsInParallel(t *testing.T) {
 }
 
 func TestYouTubeAddRetriesMisses(t *testing.T) {
-	yt := newAddFake()
-	delete(yt.search, "Johnny Cash Hurt") // no result: must be searched again next run
+	yt := fakeapi.NewChannel()
+	delete(yt.Search, "Johnny Cash Hurt") // no result: must be searched again next run
 	a := newTestApp(t, yt)
 	out, _ := runLines(t, a,
 		"youtube add Covers -y",
 		"youtube add Covers -y", // Hallelujah is in the playlist now, Hurt is retried
 		"exit",
 	)
-	if searches, _ := yt.counts(); searches != 3 {
+	if searches, _ := counts(yt); searches != 3 {
 		t.Errorf("searches = %d, want 3 (2 + the retried miss)\n%s", searches, out)
 	}
 	mustContain(t, "stdout", out,
@@ -168,12 +124,12 @@ func TestYouTubeAddRetriesMisses(t *testing.T) {
 // in the playlist (same title, artist and length) cost no search, so a long
 // playlist keeps advancing at 100 searches a day.
 func TestYouTubeAddNewSessionSkipsTracksAlreadyCopied(t *testing.T) {
-	yt := newAddFake()
+	yt := fakeapi.NewChannel()
 	runLines(t, newTestApp(t, yt), "youtube add Covers -y", "exit")
-	yt.lengths["hurtV"] = "PT4M30S" // say the upload got a long intro: length no longer fits
+	yt.Lengths["hurtV"] = "PT4M30S" // say the upload got a long intro: length no longer fits
 
 	out, _ := runLines(t, newTestApp(t, yt), "youtube add Covers -y", "exit")
-	if searches, inserts := yt.counts(); searches != 3 || inserts != 2 {
+	if searches, inserts := counts(yt); searches != 3 || inserts != 2 {
 		t.Errorf("searches=%d inserts=%d, want 2+1 and 2 (Hurt searched again, found present)", searches, inserts)
 	}
 	mustContain(t, "stdout", out,
@@ -185,10 +141,10 @@ func TestYouTubeAddNewSessionSkipsTracksAlreadyCopied(t *testing.T) {
 }
 
 func TestYouTubeAddDecline(t *testing.T) {
-	yt := newAddFake()
+	yt := fakeapi.NewChannel()
 	a := newTestApp(t, yt)
 	out, _ := runLines(t, a, "youtube add Way Covers", "n", "exit")
-	if _, inserts := yt.counts(); inserts != 0 || !strings.Contains(out, "Cancelled. Nothing was changed.") {
+	if _, inserts := counts(yt); inserts != 0 || !strings.Contains(out, "Cancelled. Nothing was changed.") {
 		t.Errorf("inserts = %d\n%s", inserts, out)
 	}
 }
@@ -196,17 +152,17 @@ func TestYouTubeAddDecline(t *testing.T) {
 // todo 2.12 + one-command flow: a missing (or deleted) destination is
 // created in the same run, under the same confirmation.
 func TestYouTubeAddCreatesMissingPlaylist(t *testing.T) {
-	yt := newAddFake()
-	yt.playlists = yt.playlists[:1] // only "The Way..." exists on YouTube
+	yt := fakeapi.NewChannel()
+	yt.Playlists = yt.Playlists[:1] // only "The Way..." exists on YouTube
 	a := newTestApp(t, yt)
 	out, errOut := runLines(t, a, "youtube add Way Covers --privacy unlisted", "y", "exit")
-	if yt.inserts != 1 {
-		t.Fatalf("playlists created = %d, want 1\n%s\n%s", yt.inserts, out, errOut)
+	if yt.Inserts != 1 {
+		t.Fatalf("playlists created = %d, want 1\n%s\n%s", yt.Inserts, out, errOut)
 	}
-	if got := yt.videos("PLfake1"); len(got) != 2 || got[0] != "hallV" || got[1] != "hurtV" {
+	if got := yt.Videos("PLfake1"); len(got) != 2 || got[0] != "hallV" || got[1] != "hurtV" {
 		t.Errorf("new Covers videos = %v, want [hallV hurtV]", got)
 	}
-	if p := yt.playlists[len(yt.playlists)-1]["status"].(map[string]string)["privacyStatus"]; p != "unlisted" {
+	if p := yt.Playlists[len(yt.Playlists)-1]["status"].(map[string]string)["privacyStatus"]; p != "unlisted" {
 		t.Errorf("privacy = %q, want unlisted", p)
 	}
 	mustContain(t, "stdout", out,
@@ -224,15 +180,15 @@ func TestYouTubeAddCreatesMissingPlaylist(t *testing.T) {
 // todo 2.5: a video no Spotify track matches is removed, after the same
 // confirmation; a partial run (--limit) never removes anything.
 func TestYouTubeAddRemovesExtras(t *testing.T) {
-	yt := newAddFake()
-	yt.seed("PLway", "topicV", "The Way", "junkV", "Totally Unrelated Song", "firstV", "My Favorite Part")
+	yt := fakeapi.NewChannel()
+	yt.Seed("PLway", "topicV", "The Way", "junkV", "Totally Unrelated Song", "firstV", "My Favorite Part")
 	a := newTestApp(t, yt)
 	out, _ := runLines(t, a, "youtube add Way --limit 1 -y", "youtube add Way", "y", "exit")
-	if got := yt.videos("PLway"); len(got) != 2 || got[0] != "topicV" || got[1] != "firstV" {
+	if got := yt.Videos("PLway"); len(got) != 2 || got[0] != "topicV" || got[1] != "firstV" {
 		t.Errorf("videos = %v, want junkV removed and order kept", got)
 	}
-	if yt.deletes != 1 {
-		t.Errorf("deletes = %d, want 1", yt.deletes)
+	if yt.Deletes != 1 {
+		t.Errorf("deletes = %d, want 1", yt.Deletes)
 	}
 	mustContain(t, "stdout", out,
 		`To remove from "The Way to My Favorite Part" (no Spotify track matches them):`,
@@ -249,15 +205,15 @@ func TestYouTubeAddRemovesExtras(t *testing.T) {
 // todo 2.17: the author swapped a match for another upload by hand. The
 // swap stays, the match is not added back, nothing is removed.
 func TestYouTubeAddKeepsManualReplacement(t *testing.T) {
-	yt := newAddFake()
-	yt.seed("PLcov", "hallV", "Hallelujah", "ninV", "Nine Inch Nails - Hurt (Official Video)")
+	yt := fakeapi.NewChannel()
+	yt.Seed("PLcov", "hallV", "Hallelujah", "ninV", "Nine Inch Nails - Hurt (Official Video)")
 	a := newTestApp(t, yt)
 	out, _ := runLines(t, a, "youtube add Covers", "exit")
-	if got := yt.videos("PLcov"); len(got) != 2 || got[1] != "ninV" {
+	if got := yt.Videos("PLcov"); len(got) != 2 || got[1] != "ninV" {
 		t.Errorf("videos = %v, want the user's ninV kept", got)
 	}
-	if _, inserts := yt.counts(); inserts != 0 || yt.deletes != 0 {
-		t.Errorf("inserts=%d deletes=%d, want none", inserts, yt.deletes)
+	if _, inserts := counts(yt); inserts != 0 || yt.Deletes != 0 {
+		t.Errorf("inserts=%d deletes=%d, want none", inserts, yt.Deletes)
 	}
 	mustContain(t, "stdout", out,
 		"keep your video (Soundsync found https://www.youtube.com/watch?v=hurtV)",
@@ -269,27 +225,27 @@ func TestYouTubeAddKeepsManualReplacement(t *testing.T) {
 // todo 2.1: an unmarked playlist with the same title is adopted only if
 // the user picks it; its videos stay that run and go on later runs.
 func TestYouTubeAddAdoptsSameTitle(t *testing.T) {
-	yt := newAddFake()
-	yt.playlists[1] = map[string]any{
+	yt := fakeapi.NewChannel()
+	yt.Playlists[1] = map[string]any{
 		"id":      "PLmine",
 		"snippet": map[string]string{"title": "Covers", "description": "My own covers"},
 		"status":  map[string]string{"privacyStatus": "public"},
 	}
-	yt.seed("PLmine", "otherV", "Some Other Song")
+	yt.Seed("PLmine", "otherV", "Some Other Song")
 	a := newTestApp(t, yt)
 	out, errOut := runLines(t, a,
 		"youtube add Covers", "1", "y", // adopt, then confirm
 		"youtube add Covers -y", // now marked: the old video goes
 		"exit",
 	)
-	desc := yt.playlists[1]["snippet"].(map[string]string)["description"]
+	desc := yt.Playlists[1]["snippet"].(map[string]string)["description"]
 	if !strings.HasPrefix(desc, "My own covers\n\n") || len(transfer.MarkerIDs(desc)) != 1 {
 		t.Errorf("description = %q, want user text + marker", desc)
 	}
-	if yt.inserts != 0 || yt.updates != 1 {
-		t.Errorf("created=%d updated=%d, want 0 and 1", yt.inserts, yt.updates)
+	if yt.Inserts != 0 || yt.Updates != 1 {
+		t.Errorf("created=%d updated=%d, want 0 and 1", yt.Inserts, yt.Updates)
 	}
-	if got := yt.videos("PLmine"); len(got) != 2 || got[0] != "hallV" || got[1] != "hurtV" {
+	if got := yt.Videos("PLmine"); len(got) != 2 || got[0] != "hallV" || got[1] != "hurtV" {
 		t.Errorf("videos = %v, want [hallV hurtV] after the second run", got)
 	}
 	mustContain(t, "stdout", out,
@@ -306,29 +262,29 @@ func TestYouTubeAddAdoptsSameTitle(t *testing.T) {
 }
 
 func TestYouTubeAddSameTitleWithYesStopsBeforeSearching(t *testing.T) {
-	yt := newAddFake()
-	yt.playlists[1]["snippet"] = map[string]string{"title": "Covers", "description": "no marker"}
+	yt := fakeapi.NewChannel()
+	yt.Playlists[1]["snippet"] = map[string]string{"title": "Covers", "description": "no marker"}
 	a := newTestApp(t, yt)
 	_, errOut := runLines(t, a, "youtube add Way Covers -y", "exit")
 	mustContain(t, "stderr", errOut, `already has a playlist called "Covers" that Soundsync did not create; run the command without --yes`)
-	if searches, inserts := yt.counts(); searches != 0 || inserts != 0 {
+	if searches, inserts := counts(yt); searches != 0 || inserts != 0 {
 		t.Errorf("searches=%d inserts=%d, want 0 and 0", searches, inserts)
 	}
 }
 
 func TestYouTubeAddSameTitleDeclinedCreatesNew(t *testing.T) {
-	yt := newAddFake()
-	yt.playlists[1]["snippet"] = map[string]string{"title": "Covers", "description": "no marker"}
+	yt := fakeapi.NewChannel()
+	yt.Playlists[1]["snippet"] = map[string]string{"title": "Covers", "description": "no marker"}
 	a := newTestApp(t, yt)
 	out, _ := runLines(t, a, "youtube add Covers", "", "y", "exit")
-	if yt.inserts != 1 || yt.updates != 0 {
-		t.Errorf("created=%d updated=%d, want a new playlist and no adoption", yt.inserts, yt.updates)
+	if yt.Inserts != 1 || yt.Updates != 0 {
+		t.Errorf("created=%d updated=%d, want a new playlist and no adoption", yt.Inserts, yt.Updates)
 	}
 	mustContain(t, "stdout", out, "A new playlist will be created.", `"Covers": create it (private), add 2 video(s)`)
 }
 
 func TestYouTubeAddReportsAllBadArgsAtOnce(t *testing.T) {
-	yt := newAddFake()
+	yt := fakeapi.NewChannel()
 	a := newTestApp(t, yt)
 	_, errOut := runLines(t, a, "youtube add Way nothing-like-this Pentatonix", "exit")
 	mustContain(t, "stderr", errOut,
@@ -336,38 +292,38 @@ func TestYouTubeAddReportsAllBadArgsAtOnce(t *testing.T) {
 		`"Pentatonix Evolution of Music" belongs to another user`,
 		"tip: each argument is one playlist",
 	)
-	if searches, _ := yt.counts(); searches != 0 {
+	if searches, _ := counts(yt); searches != 0 {
 		t.Errorf("searches = %d, want 0", searches)
 	}
 }
 
 func TestYouTubeAddSamePlaylistTwiceRunsOnce(t *testing.T) {
-	yt := newAddFake()
+	yt := fakeapi.NewChannel()
 	a := newTestApp(t, yt)
 	runLines(t, a, "youtube add Way 5ZwLvrI8d6VnEQXxB0bMms -y", "exit")
-	if searches, _ := yt.counts(); searches != 2 || len(yt.videos("PLway")) != 2 {
-		t.Errorf("searches=%d videos=%v, want one run", searches, yt.videos("PLway"))
+	if searches, _ := counts(yt); searches != 2 || len(yt.Videos("PLway")) != 2 {
+		t.Errorf("searches=%d videos=%v, want one run", searches, yt.Videos("PLway"))
 	}
 }
 
 func TestYouTubeAddQuotaStopsTheOtherPlaylist(t *testing.T) {
-	yt := newAddFake()
-	yt.failItemAt = 2 // quota runs out after the first insert, whichever playlist sends it
+	yt := fakeapi.NewChannel()
+	yt.FailItemAt = 2 // quota runs out after the first insert, whichever playlist sends it
 	a := newTestApp(t, yt)
 	out, errOut := runLines(t, a, "youtube add Way Covers --yes", "exit")
 	mustContain(t, "stdout", out, "(stopped)")
 	mustContain(t, "stderr", errOut, "quotaExceeded", "it only adds what is missing")
-	if total := len(yt.videos("PLway")) + len(yt.videos("PLcov")); total != 1 {
+	if total := len(yt.Videos("PLway")) + len(yt.Videos("PLcov")); total != 1 {
 		t.Errorf("only the insert made before the quota ran out may land, got %d videos", total)
 	}
 }
 
 func TestYouTubeAddLimit(t *testing.T) {
-	yt := newAddFake()
+	yt := fakeapi.NewChannel()
 	a := newTestApp(t, yt)
 	out, errOut := runLines(t, a, "youtube add Way --limit 1 --yes", "youtube add Way --limit -1", "youtube add Way --max-searches -1", "exit")
-	if searches, _ := yt.counts(); searches != 1 || len(yt.videos("PLway")) != 1 {
-		t.Errorf("searches=%d videos=%v, want 1 and 1", searches, yt.videos("PLway"))
+	if searches, _ := counts(yt); searches != 1 || len(yt.Videos("PLway")) != 1 {
+		t.Errorf("searches=%d videos=%v, want 1 and 1", searches, yt.Videos("PLway"))
 	}
 	mustContain(t, "stdout", out, "only the first 1 tracks (--limit)")
 	mustContain(t, "stderr", errOut, "--limit must be 0 (all tracks) or more", "--max-searches must be 0 or more")
@@ -379,13 +335,13 @@ func TestYouTubeAddLimit(t *testing.T) {
 // todo 2.8: when the searches run out, what was found is still written and
 // the rest waits; extras are not judged on a partial run.
 func TestYouTubeAddMaxSearches(t *testing.T) {
-	yt := newAddFake()
-	yt.seed("PLcov", "junkV", "Unrelated")
+	yt := fakeapi.NewChannel()
+	yt.Seed("PLcov", "junkV", "Unrelated")
 	a := newTestApp(t, yt)
 	out, _ := runLines(t, a, "youtube add Covers --max-searches 1 -y", "exit")
-	searches, inserts := yt.counts()
-	if searches != 1 || inserts != 1 || yt.deletes != 0 {
-		t.Errorf("searches=%d inserts=%d deletes=%d, want 1, 1, 0", searches, inserts, yt.deletes)
+	searches, inserts := counts(yt)
+	if searches != 1 || inserts != 1 || yt.Deletes != 0 {
+		t.Errorf("searches=%d inserts=%d deletes=%d, want 1, 1, 0", searches, inserts, yt.Deletes)
 	}
 	mustContain(t, "stdout", out,
 		"Searching 1 of 2 track(s): 1 search(es) left in this session (--max-searches)",
@@ -399,11 +355,11 @@ func TestYouTubeAddMaxSearches(t *testing.T) {
 
 // YouTube refusing a search for quota no longer throws the found matches away.
 func TestYouTubeAddSearchQuotaStillWritesWhatWasFound(t *testing.T) {
-	yt := newAddFake()
-	yt.failSearch = 2 // the 2nd search hits an empty bucket
+	yt := fakeapi.NewChannel()
+	yt.FailSearch = 2 // the 2nd search hits an empty bucket
 	a := newTestApp(t, yt)
 	out, errOut := runLines(t, a, "youtube add Covers -y", "exit")
-	if got := yt.videos("PLcov"); len(got) != 1 || got[0] != "hallV" {
+	if got := yt.Videos("PLcov"); len(got) != 1 || got[0] != "hallV" {
 		t.Errorf("videos = %v, want the one match found before the quota ran out", got)
 	}
 	mustContain(t, "stdout", out, "YouTube says today's searches are used up", "1 track(s) wait for the next run")
@@ -417,22 +373,22 @@ func TestYouTubeAddCapsAtPlaylistLimit(t *testing.T) {
 	old := maxPlaylistItems
 	maxPlaylistItems = 1
 	t.Cleanup(func() { maxPlaylistItems = old })
-	yt := newAddFake()
+	yt := fakeapi.NewChannel()
 	a := newTestApp(t, yt)
 	out, _ := runLines(t, a, "youtube add Covers -y", "exit")
-	if got := yt.videos("PLcov"); len(got) != 1 {
+	if got := yt.Videos("PLcov"); len(got) != 1 {
 		t.Errorf("videos = %v, want 1 (the cap)", got)
 	}
 	mustContain(t, "stdout", out, "only the first 1 tracks: a YouTube playlist holds at most 1 videos.")
 }
 
 func TestYouTubeCreateTwoPlaylistsOneExisting(t *testing.T) {
-	yt := newAddFake()
-	yt.playlists = yt.playlists[:1] // "The Way..." exists, "Covers" does not
+	yt := fakeapi.NewChannel()
+	yt.Playlists = yt.Playlists[:1] // "The Way..." exists, "Covers" does not
 	a := newTestApp(t, yt)
 	out, _ := runLines(t, a, "youtube create Way Covers", "y", "exit")
-	if yt.inserts != 1 {
-		t.Fatalf("playlists created = %d, want 1 (Covers only)\n%s", yt.inserts, out)
+	if yt.Inserts != 1 {
+		t.Fatalf("playlists created = %d, want 1 (Covers only)\n%s", yt.Inserts, out)
 	}
 	mustContain(t, "stdout", out, "Already on YouTube as", "Go ahead?", `Created "Covers" (private).`)
 }
@@ -446,15 +402,15 @@ func TestYouTubeAddFindsOwnTopicBeyondTopResults(t *testing.T) {
 		{"PT3M38S", "cashTopic"}, // album length: the Topic upload wins
 		{"PT5M02S", "hurtV"},     // another recording: classic ranking over the top 5
 	} {
-		yt := newAddFake()
-		results := []map[string]any{video("hurtV", "Hurt", "JohnnyCashVEVO")}
+		yt := fakeapi.NewChannel()
+		results := []map[string]any{fakeapi.Video("hurtV", "Hurt", "JohnnyCashVEVO")}
 		for i := range 5 {
-			results = append(results, video(fmt.Sprintf("x%d", i), "Hurt cover", "Someone"))
+			results = append(results, fakeapi.Video(fmt.Sprintf("x%d", i), "Hurt cover", "Someone"))
 		}
-		yt.search["Johnny Cash Hurt"] = append(results, video("cashTopic", "Hurt", "Johnny Cash - Topic"))
-		yt.lengths["cashTopic"] = c.length
+		yt.Search["Johnny Cash Hurt"] = append(results, fakeapi.Video("cashTopic", "Hurt", "Johnny Cash - Topic"))
+		yt.Lengths["cashTopic"] = c.length
 		runLines(t, newTestApp(t, yt), "youtube add Covers -y", "exit")
-		if got := yt.videos("PLcov"); len(got) != 2 || got[1] != c.want {
+		if got := yt.Videos("PLcov"); len(got) != 2 || got[1] != c.want {
 			t.Errorf("Topic length %s: videos = %v, want %s second", c.length, got, c.want)
 		}
 	}
@@ -463,9 +419,9 @@ func TestYouTubeAddFindsOwnTopicBeyondTopResults(t *testing.T) {
 // todo 2.9: --lang es switches the whole flow, and "s" confirms.
 func TestYouTubeAddInSpanish(t *testing.T) {
 	t.Cleanup(func() { i18n.Set(i18n.EN) })
-	yt := newAddFake()
+	yt := fakeapi.NewChannel()
 	out, _ := runLines(t, newTestApp(t, yt), "youtube add Covers --lang es", "s", "exit")
-	if _, inserts := yt.counts(); inserts != 2 {
+	if _, inserts := counts(yt); inserts != 2 {
 		t.Errorf("inserts = %d, want 2: \"s\" must confirm in Spanish", inserts)
 	}
 	mustContain(t, "stdout", out,

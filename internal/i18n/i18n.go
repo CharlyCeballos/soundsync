@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync/atomic"
 )
 
 // Supported languages (planV1 §4: es-MX and en).
@@ -12,23 +13,32 @@ const (
 	ES = "es"
 )
 
-// current is process-wide: one user, one terminal.
-var current = EN
+// current is process-wide (one user). It is atomic because the GUI switches
+// language while background work is translating messages.
+var current atomic.Value // string; unset means EN
 
 // Set selects the language for every later message.
 func Set(lang string) error {
 	switch lang {
 	case EN, ES:
-		current = lang
+		current.Store(lang)
 		return nil
 	}
 	return fmt.Errorf("unsupported language %q (want es or en)", lang)
 }
 
+// Current returns the language messages are translated to.
+func Current() string {
+	if lang, ok := current.Load().(string); ok {
+		return lang
+	}
+	return EN
+}
+
 // T translates an English message; the English text is the key (gettext
 // style). A message without a translation stays in English.
 func T(msg string) string {
-	if current == ES {
+	if Current() == ES {
 		if t, ok := es[msg]; ok {
 			return t
 		}

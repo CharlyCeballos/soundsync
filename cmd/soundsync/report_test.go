@@ -7,12 +7,14 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/CharlyCeballos/soundsync/internal/fakeapi"
 )
 
 func TestYouTubeAddReportCSV(t *testing.T) {
-	yt := newAddFake()
-	yt.seed("PLway", "junkV", "Totally Unrelated Song")
-	yt.seed("PLcov", "ninV", "Nine Inch Nails - Hurt (Official Video)")
+	yt := fakeapi.NewChannel()
+	yt.Seed("PLway", "junkV", "Totally Unrelated Song")
+	yt.Seed("PLcov", "ninV", "Nine Inch Nails - Hurt (Official Video)")
 	path := filepath.Join(t.TempDir(), "run.csv")
 	out, errOut := runLines(t, newTestApp(t, yt), "youtube add Way Covers -y --report "+path, "exit")
 	if errOut != "" {
@@ -65,7 +67,7 @@ func TestYouTubeAddReportCSV(t *testing.T) {
 }
 
 func TestYouTubeAddReportJSONEvenWhenCancelled(t *testing.T) {
-	yt := newAddFake()
+	yt := fakeapi.NewChannel()
 	path := filepath.Join(t.TempDir(), "run.json")
 	runLines(t, newTestApp(t, yt), "youtube add Covers --report "+path, "n", "exit")
 	var got struct {
@@ -88,13 +90,13 @@ func TestYouTubeAddReportPathCheckedBeforeLogin(t *testing.T) {
 	dir := t.TempDir()
 	existing := filepath.Join(dir, "old.csv")
 	os.WriteFile(existing, []byte("keep me"), 0o600)
-	yt := newAddFake()
+	yt := fakeapi.NewChannel()
 	_, errOut := runLines(t, newTestApp(t, yt),
 		"youtube add Covers --report "+existing,
 		"youtube add Covers --report "+filepath.Join(dir, "run.txt"),
 		"exit")
 	mustContain(t, "stderr", errOut, "already exists; choose another file name", "use a .csv or .json file name")
-	if searches, _ := yt.counts(); searches != 0 {
+	if searches, _ := counts(yt); searches != 0 {
 		t.Errorf("searches = %d, want 0", searches)
 	}
 	if b, _ := os.ReadFile(existing); string(b) != "keep me" {
