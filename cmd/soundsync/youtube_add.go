@@ -13,6 +13,7 @@ import (
 
 	"github.com/CharlyCeballos/soundsync/internal/i18n"
 	"github.com/CharlyCeballos/soundsync/internal/match"
+	"github.com/CharlyCeballos/soundsync/internal/session"
 	"github.com/CharlyCeballos/soundsync/internal/spotify"
 	"github.com/CharlyCeballos/soundsync/internal/transfer"
 	"github.com/CharlyCeballos/soundsync/internal/youtube"
@@ -144,11 +145,11 @@ func runYouTubeAdd(ctx context.Context, out io.Writer, a *app, args []string, op
 	}
 
 	printDestinations(out, yt, jobs, opts.limit)
-	runJobs(ctx, jobs, func(ctx context.Context, j *addJob) error { return j.lookUp(ctx, yt.client, &yt.picks) })
+	runJobs(ctx, jobs, func(ctx context.Context, j *addJob) error { return j.lookUp(ctx, yt) })
 	budget := &searchBudget{}
-	budget.left.Store(int64(opts.maxSearches) - yt.client.SearchesUsed())
+	budget.left.Store(int64(opts.maxSearches) - yt.Client.SearchesUsed())
 	printSearchCount(out, jobs, budget.left.Load())
-	runJobs(ctx, jobs, func(ctx context.Context, j *addJob) error { return j.match(ctx, yt.client, &yt.picks, budget) })
+	runJobs(ctx, jobs, func(ctx context.Context, j *addJob) error { return j.match(ctx, yt, budget) })
 	if budget.googleSaidNo.Load() {
 		fmt.Fprintln(out, i18n.T("\nYouTube says today's searches are used up (they reset at midnight Pacific time). What was found so far can still be written."))
 	}
@@ -160,7 +161,7 @@ func runYouTubeAdd(ctx context.Context, out io.Writer, a *app, args []string, op
 		}
 	}
 	if err := firstErr(jobs); err != nil {
-		printAddSummary(out, yt.client, jobs)
+		printAddSummary(out, yt.Client, jobs)
 		return err
 	}
 	return confirmAndWrite(ctx, out, a, yt, jobs, opts)
@@ -168,7 +169,7 @@ func runYouTubeAdd(ctx context.Context, out io.Writer, a *app, args []string, op
 
 // confirmAndWrite shows every write, asks once (Policies III.C.2) and runs
 // the writes concurrently across playlists.
-func confirmAndWrite(ctx context.Context, out io.Writer, a *app, yt *youtubeSession, jobs []*addJob, opts *addOptions) error {
+func confirmAndWrite(ctx context.Context, out io.Writer, a *app, yt *session.YouTube, jobs []*addJob, opts *addOptions) error {
 	units := 0
 	var changing []*addJob
 	for _, j := range jobs {
@@ -179,32 +180,32 @@ func confirmAndWrite(ctx context.Context, out io.Writer, a *app, yt *youtubeSess
 	}
 	if len(changing) == 0 {
 		fmt.Fprintln(out, i18n.T("\nNothing to write."))
-		printAddSummary(out, yt.client, jobs)
+		printAddSummary(out, yt.Client, jobs)
 		return nil
 	}
 
 	fmt.Fprintf(out, i18n.T("\nAbout to change %d playlist(s) on channel %q: %d units (used so far: %d of %d).\n"),
-		len(changing), yt.channel.Title, units, yt.client.UnitsUsed(), youtube.UnitsPerDay)
+		len(changing), yt.Channel.Title, units, yt.Client.UnitsUsed(), youtube.UnitsPerDay)
 	for _, j := range changing {
 		fmt.Fprintf(out, i18n.T("  %q: %s\n"), j.src.Name, j.actions(opts.privacy))
 	}
 	if !opts.yes && !a.confirm(out, "Go ahead?") {
 		fmt.Fprintln(out, i18n.T("Cancelled. Nothing was changed."))
-		printAddSummary(out, yt.client, jobs)
+		printAddSummary(out, yt.Client, jobs)
 		return nil
 	}
 
 	lw := &lockedWriter{w: out}
-	runJobs(ctx, changing, func(ctx context.Context, j *addJob) error { return j.write(ctx, lw, yt.client, opts.privacy) })
+	runJobs(ctx, changing, func(ctx context.Context, j *addJob) error { return j.write(ctx, lw, yt.Client, opts.privacy) })
 	fmt.Fprintln(out)
-	printAddSummary(out, yt.client, jobs)
+	printAddSummary(out, yt.Client, jobs)
 	return firstErr(jobs)
 }
 
 // prepareAddJobs chooses each destination and reads the Spotify tracks,
 // before any search.
-func prepareAddJobs(ctx context.Context, out io.Writer, a *app, sp *spotifySession, yt *youtubeSession, srcs []spotify.Playlist, opts *addOptions) ([]*addJob, error) {
-	playlists, err := yt.client.MyPlaylists(ctx)
+func prepareAddJobs(ctx context.Context, out io.Writer, a *app, sp *session.Spotify, yt *session.YouTube, srcs []spotify.Playlist, opts *addOptions) ([]*addJob, error) {
+	playlists, err := yt.Client.MyPlaylists(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +217,7 @@ func prepareAddJobs(ctx context.Context, out io.Writer, a *app, sp *spotifySessi
 	jobs := make([]*addJob, len(dests))
 	for i, d := range dests {
 		j := &addJob{destination: d, ready: d.kind == destExisting}
-		entries, err := sp.client.PlaylistItems(ctx, d.src.ID)
+		entries, err := sp.Client.PlaylistItems(ctx, d.src.ID)
 		if err != nil {
 			return nil, fmt.Errorf(i18n.T("%q: %w"), d.src.Name, err)
 		}
@@ -240,8 +241,8 @@ func prepareAddJobs(ctx context.Context, out io.Writer, a *app, sp *spotifySessi
 }
 
 // printDestinations says where each Spotify playlist goes.
-func printDestinations(out io.Writer, yt *youtubeSession, jobs []*addJob, limit int) {
-	fmt.Fprintf(out, i18n.T("\nSpotify → YouTube on channel %q:\n"), yt.channel.Title)
+func printDestinations(out io.Writer, yt *session.YouTube, jobs []*addJob, limit int) {
+	fmt.Fprintf(out, i18n.T("\nSpotify → YouTube on channel %q:\n"), yt.Channel.Title)
 	for _, j := range jobs {
 		dest := i18n.T("a new playlist")
 		if j.kind != destCreate {
@@ -332,7 +333,8 @@ func runJobs(parent context.Context, jobs []*addJob, fn func(context.Context, *a
 // search: those already in the playlist with the same title, artist and
 // length (so a run on another day does not search them again), then those
 // matched earlier in this session (todo 2.16).
-func (j *addJob) lookUp(ctx context.Context, yc *youtube.Client, picks *sync.Map) error {
+func (j *addJob) lookUp(ctx context.Context, yt *session.YouTube) error {
+	yc := yt.Client
 	j.known = map[int]transfer.Matched{}
 	if j.kind != destCreate {
 		items, err := yc.PlaylistItems(ctx, j.target.ID)
@@ -352,8 +354,7 @@ func (j *addJob) lookUp(ctx context.Context, yc *youtube.Client, picks *sync.Map
 		if _, ok := j.known[e.Position]; ok {
 			continue
 		}
-		if hit, ok := picks.Load(match.Query(e.Track)); ok {
-			m := hit.(transfer.Matched)
+		if m, ok := yt.Pick(match.Query(e.Track)); ok {
 			m.Entry = e
 			j.known[e.Position] = m
 		}
@@ -365,9 +366,9 @@ func (j *addJob) lookUp(ctx context.Context, yc *youtube.Client, picks *sync.Map
 // searches run out the plan covers what was found and the rest waits for
 // the next run; on an error the plan covers what was matched before it, so
 // the stop can be reported.
-func (j *addJob) match(ctx context.Context, yc *youtube.Client, picks *sync.Map, budget *searchBudget) error {
+func (j *addJob) match(ctx context.Context, yt *session.YouTube, budget *searchBudget) error {
 	var err error
-	j.matched, j.waiting, err = searchAll(ctx, yc, picks, j.tracks, j.known, budget)
+	j.matched, j.waiting, err = searchAll(ctx, yt, j.tracks, j.known, budget)
 	// An adopted playlist keeps its own videos this time: adopting combines
 	// (planV1 §5); later runs remove what is not in Spotify.
 	judgeExtras := j.complete && err == nil && j.waiting == 0 && j.kind != destAdopt
@@ -422,7 +423,7 @@ func (j *addJob) write(ctx context.Context, out io.Writer, yc *youtube.Client, p
 // stops it, returning what it matched so far. Each found match is
 // remembered for the session; a query with no result is not, so the next
 // run tries it again (todo 2.6).
-func searchAll(ctx context.Context, yc *youtube.Client, picks *sync.Map, entries []spotify.Entry, known map[int]transfer.Matched, budget *searchBudget) (out []transfer.Matched, waiting int, err error) {
+func searchAll(ctx context.Context, yt *session.YouTube, entries []spotify.Entry, known map[int]transfer.Matched, budget *searchBudget) (out []transfer.Matched, waiting int, err error) {
 	for _, e := range entries {
 		if m, ok := known[e.Position]; ok {
 			out = append(out, m)
@@ -433,7 +434,7 @@ func searchAll(ctx context.Context, yc *youtube.Client, picks *sync.Map, entries
 			continue
 		}
 		q := match.Query(e.Track)
-		results, err := yc.SearchVideos(ctx, q, match.SearchResults)
+		results, err := yt.Client.SearchVideos(ctx, q, match.SearchResults)
 		if isQuota(err) {
 			budget.exhaust()
 			waiting++
@@ -442,13 +443,13 @@ func searchAll(ctx context.Context, yc *youtube.Client, picks *sync.Map, entries
 		if err != nil {
 			return out, waiting, err
 		}
-		v, reason, ok, err := pickBest(ctx, yc, e.Track, results)
+		v, reason, ok, err := pickBest(ctx, yt.Client, e.Track, results)
 		if err != nil {
 			return out, waiting, err
 		}
 		m := transfer.Matched{Entry: e, Video: v, Reason: reason, Found: ok}
 		if ok {
-			picks.Store(q, m)
+			yt.Remember(q, m)
 		}
 		out = append(out, m)
 	}

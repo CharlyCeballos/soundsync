@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/CharlyCeballos/soundsync/internal/session"
 	"github.com/CharlyCeballos/soundsync/internal/spotify"
 	"github.com/CharlyCeballos/soundsync/internal/youtube"
 
@@ -70,13 +71,13 @@ func fakeSpotifyAPI(t *testing.T) *spotify.Client {
 func TestShellLogsInOncePerService(t *testing.T) {
 	var spotifyLogins, youtubeLogins atomic.Int32
 	a := newApp()
-	a.newSpotify = func(ctx context.Context, out io.Writer, a *app) (*spotifySession, error) {
+	a.newSpotify = func(ctx context.Context, out io.Writer, a *app) (*session.Spotify, error) {
 		spotifyLogins.Add(1)
-		return &spotifySession{client: fakeSpotifyAPI(t), me: spotify.User{ID: "me", DisplayName: "Charly"}}, nil
+		return &session.Spotify{Client: fakeSpotifyAPI(t), Me: spotify.User{ID: "me", DisplayName: "Charly"}}, nil
 	}
-	a.newYouTube = func(ctx context.Context, out io.Writer, a *app) (*youtubeSession, error) {
+	a.newYouTube = func(ctx context.Context, out io.Writer, a *app) (*session.YouTube, error) {
 		youtubeLogins.Add(1)
-		return &youtubeSession{channel: youtube.Channel{ID: "UC1", Title: "Carlos Ceballos"}, tok: &oauth2.Token{AccessToken: "yt-access"}}, nil
+		return &session.YouTube{Channel: youtube.Channel{ID: "UC1", Title: "Carlos Ceballos"}, Token: &oauth2.Token{AccessToken: "yt-access"}}, nil
 	}
 
 	in := strings.NewReader(strings.Join([]string{
@@ -147,7 +148,7 @@ func TestCloseRevokesGoogleOnce(t *testing.T) {
 		t.Fatalf("revoked without a session: %v", revoked)
 	}
 
-	a.yt = &youtubeSession{tok: &oauth2.Token{AccessToken: "a", RefreshToken: "r"}}
+	a.yt = &session.YouTube{Token: &oauth2.Token{AccessToken: "a", RefreshToken: "r"}}
 	a.close(&out)
 	a.close(&out) // second close is a no-op
 	if len(revoked) != 1 || revoked[0] != "r" {

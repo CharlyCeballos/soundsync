@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/CharlyCeballos/soundsync/internal/fakeapi"
+	"github.com/CharlyCeballos/soundsync/internal/session"
 	"github.com/CharlyCeballos/soundsync/internal/spotify"
 	"github.com/CharlyCeballos/soundsync/internal/transfer"
 	"github.com/CharlyCeballos/soundsync/internal/youtube"
@@ -35,14 +36,14 @@ func newTestApp(t *testing.T, yt *fakeapi.YouTube) *app {
 	ytSrv := httptest.NewServer(yt)
 	t.Cleanup(ytSrv.Close)
 	a := newApp()
-	a.newSpotify = func(context.Context, io.Writer, *app) (*spotifySession, error) {
-		return &spotifySession{client: spotifyClient(t, fakeapi.NewLibrary()), me: spotify.User{ID: "me"}}, nil
+	a.newSpotify = func(context.Context, io.Writer, *app) (*session.Spotify, error) {
+		return &session.Spotify{Client: spotifyClient(t, fakeapi.NewLibrary()), Me: spotify.User{ID: "me"}}, nil
 	}
-	a.newYouTube = func(context.Context, io.Writer, *app) (*youtubeSession, error) {
-		return &youtubeSession{
-			client:  youtube.NewClient(ytSrv.Client()).WithBaseURL(ytSrv.URL),
-			channel: youtube.Channel{ID: "UC1", Title: "Carlos Ceballos"},
-			tok:     &oauth2.Token{AccessToken: "x"},
+	a.newYouTube = func(context.Context, io.Writer, *app) (*session.YouTube, error) {
+		return &session.YouTube{
+			Client:  youtube.NewClient(ytSrv.Client()).WithBaseURL(ytSrv.URL),
+			Channel: youtube.Channel{ID: "UC1", Title: "Carlos Ceballos"},
+			Token:   &oauth2.Token{AccessToken: "x"},
 		}, nil
 	}
 	return a
@@ -121,11 +122,11 @@ func TestYouTubeCreateYesSkipsPromptAndHonoursPrivacy(t *testing.T) {
 
 func TestYouTubeCreateBadPrivacyNeedsNoLogin(t *testing.T) {
 	a := newApp()
-	a.newSpotify = func(context.Context, io.Writer, *app) (*spotifySession, error) {
+	a.newSpotify = func(context.Context, io.Writer, *app) (*session.Spotify, error) {
 		t.Error("must not log in to Spotify")
 		return nil, fmt.Errorf("no")
 	}
-	a.newYouTube = func(context.Context, io.Writer, *app) (*youtubeSession, error) {
+	a.newYouTube = func(context.Context, io.Writer, *app) (*session.YouTube, error) {
 		t.Error("must not log in to YouTube")
 		return nil, fmt.Errorf("no")
 	}
