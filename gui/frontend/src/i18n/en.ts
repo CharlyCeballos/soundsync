@@ -189,6 +189,8 @@ export const en = {
   statNoMatch: "Not found",
   statSkipped: "Can't be searched",
   statWaiting: "Waiting",
+  adoptedKept:
+    "Its other videos were kept. Later copies remove the ones no Spotify song matches, after showing you.",
   openInMusic: "Open in YouTube Music",
   quotaUsed: "This session used {units} of {perDay} quota units and {searches} of {searchesPerDay} searches.",
   reportTitle: "Report",

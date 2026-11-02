@@ -232,6 +232,8 @@ main { overflow: auto; scroll-behavior: smooth; }
   transition: background-color 160ms var(--ease), border-color 160ms var(--ease), color 160ms var(--ease), box-shadow 160ms var(--ease);
 }
 .btn svg { width: 16px; height: 16px; flex: none; }
+a.btn { text-decoration: none; }
+a.btn-secondary, a.btn-secondary:hover { color: var(--text); }
 .btn-lg { height: 42px; padding: 0 var(--space-5); font-size: var(--fs-md); }
 .btn-primary { background: var(--accent); color: var(--accent-text); box-shadow: 0 1px 2px rgb(16 16 24 / 0.12); }
 .btn-primary:hover { background: var(--accent-strong); }

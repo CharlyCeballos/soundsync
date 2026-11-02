@@ -189,6 +189,8 @@ export const es: Messages = {
   statNoMatch: "No encontrados",
   statSkipped: "No se pueden buscar",
   statWaiting: "En espera",
+  adoptedKept:
+    "Sus otros videos se quedaron. Las próximas copias quitan los que no correspondan a ninguna canción de Spotify, después de mostrártelo.",
   openInMusic: "Abrir en YouTube Music",
   quotaUsed: "En esta sesión se usaron {units} de {perDay} unidades de quota y {searches} de {searchesPerDay} búsquedas.",
   reportTitle: "Reporte",

@@ -104,6 +104,7 @@ function Result({ flow, result }: { flow: Flow; result: Models.RunView }) {
               {p.skipped > 0 && <Stat label={t("statSkipped")} value={p.skipped} />}
               {p.waiting > 0 && <Stat label={t("statWaiting")} value={p.waiting} />}
             </dl>
+            {p.kind === "adopt" && p.ready && <Banner tone="info">{t("adoptedKept")}</Banner>}
             {p.error && <Banner tone="error">{p.error}</Banner>}
           </li>
         ))}
