@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/CharlyCeballos/soundsync/internal/consent"
 )
 
 func answering(t *testing.T, a *app, answers ...string) *int {
@@ -33,12 +35,12 @@ func TestPrivacyAcceptedOnceAndRemembered(t *testing.T) {
 	if err := a.ensurePolicyAccepted(&out); err != nil || *asked != 1 {
 		t.Fatalf("same process must not ask twice: err=%v asked=%d", err, *asked)
 	}
-	for _, want := range []string{"PRIVACY.md", "https://www.youtube.com/t/terms", "https://policies.google.com/privacy", "YouTube API Services", "myaccount.google.com/permissions"} {
+	for _, want := range []string{consent.PolicyURL, consent.YouTubeTermsURL, consent.GooglePrivacyURL, consent.GooglePermissionsURL, "YouTube API Services"} {
 		if !strings.Contains(out.String(), want) {
 			t.Errorf("notice missing %q", want)
 		}
 	}
-	if b, err := os.ReadFile(filepath.Join(dir, "privacy-accepted")); err != nil || strings.TrimSpace(string(b)) != privacyPolicyVersion {
+	if b, err := os.ReadFile(filepath.Join(dir, "privacy-accepted")); err != nil || strings.TrimSpace(string(b)) != consent.Version {
 		t.Fatalf("acceptance file = %q, %v", b, err)
 	}
 
@@ -85,7 +87,7 @@ func TestPrivacyNewVersionAsksAgain(t *testing.T) {
 func writeEnv(t *testing.T) string {
 	t.Helper()
 	for _, k := range []string{"SPOTIFY_CLIENT_ID", "SPOTIFY_REDIRECT_URI", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REDIRECT_URI"} {
-		t.Setenv(k, "") // LoadDotEnv does not override variables already set
+		t.Setenv(k, "") // real environment variables win over the .env file
 		os.Unsetenv(k)
 	}
 	path := filepath.Join(t.TempDir(), ".env")

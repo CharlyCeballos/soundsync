@@ -36,6 +36,34 @@ var es = map[string]string{
 	"set":                      "definido",
 	"invalid":                  "inválido",
 
+	// internal/copier
+	"that playlist is not one of the playlists offered for this Spotify playlist": "esa playlist no es una de las que se ofrecieron para esta playlist de Spotify",
+
+	// gui (Windows without WebView2)
+	"Soundsync needs the Microsoft Edge WebView2 Runtime, which is not installed on this computer.\n\nOpen Microsoft's download page now? After installing it, open Soundsync again.": "Soundsync necesita Microsoft Edge WebView2 Runtime, que no está instalado en esta computadora.\n\n¿Abrir ahora la página de descarga de Microsoft? Después de instalarlo, abre Soundsync de nuevo.",
+
+	// internal/desktop (GUI)
+	"Soundsync is still working on the previous step; wait for it to finish or stop it":           "Soundsync sigue trabajando en el paso anterior; espera a que termine o detenlo",
+	"this system has no folder for app settings, so Soundsync cannot find its configuration file": "este sistema no tiene carpeta para la configuración de apps, así que Soundsync no puede encontrar su archivo de configuración",
+	"connect Spotify first":                "primero conecta Spotify",
+	"connect YouTube first":                "primero conecta YouTube",
+	"choose at least one Spotify playlist": "elige al menos una playlist de Spotify",
+	"choose your playlists again: the previous choice is no longer current": "vuelve a elegir tus playlists: la elección anterior ya no está vigente",
+	"look for matches first": "primero busca las coincidencias",
+	"the search stopped before every playlist was checked; look for matches again":                                                "la búsqueda se detuvo antes de revisar todas las playlists; vuelve a buscar las coincidencias",
+	"this plan was already written; look for matches again to copy more":                                                          "este plan ya se escribió; vuelve a buscar coincidencias para copiar más",
+	"there is no copy to report yet":                                                                                              "todavía no hay una copia para reportar",
+	"Soundsync only opens links to Spotify, YouTube, Google and its own page":                                                     "Soundsync solo abre enlaces de Spotify, YouTube, Google y su propia página",
+	"the configuration file already exists; open its folder to edit it":                                                           "el archivo de configuración ya existe; abre su carpeta para editarlo",
+	"choose private, unlisted or public for new playlists":                                                                        "elige privada, no listada o pública para las playlists nuevas",
+	"choose CSV or JSON for the report":                                                                                           "elige CSV o JSON para el reporte",
+	"playlist %s is not in your Spotify library; refresh the list and choose again":                                               "la playlist %s no está en tu biblioteca de Spotify; actualiza la lista y vuelve a elegir",
+	"%q: choose whether to use your existing playlist or create a new one":                                                        "%q: elige si usas tu playlist existente o creas una nueva",
+	"%q already exists; choose another name (Soundsync never overwrites files)":                                                   "%q ya existe; elige otro nombre (Soundsync nunca sobrescribe archivos)",
+	"YouTube's daily quota is used up; it resets at midnight Pacific time. Copy again then: Soundsync only adds what is missing.": "Se agotó la quota diaria de YouTube; se reinicia a medianoche, hora del Pacífico. Copia otra vez entonces: Soundsync solo agrega lo que falta.",
+	"Save the Soundsync report":                                                                                                   "Guardar el reporte de Soundsync",
+	"%w\nrevoke it by hand at https://myaccount.google.com/permissions":                                                           "%w\nrevócalo a mano en https://myaccount.google.com/permissions",
+
 	// destinations.go
 	"warning: %q (%s) carries the same Soundsync marker as another playlist; only the first one is used.\n":                                  "aviso: %q (%s) tiene el mismo marcador de Soundsync que otra playlist; solo se usa la primera.\n",
 	"your channel already has a playlist called %s that Soundsync did not create; run the command without --yes to choose whether to use it": "tu canal ya tiene una playlist llamada %s que Soundsync no creó; corre el comando sin --yes para elegir si la usas",

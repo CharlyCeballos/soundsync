@@ -7,12 +7,15 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/CharlyCeballos/soundsync/internal/fakeapi"
+	"github.com/CharlyCeballos/soundsync/internal/report"
 )
 
 func TestYouTubeAddReportCSV(t *testing.T) {
-	yt := newAddFake()
-	yt.seed("PLway", "junkV", "Totally Unrelated Song")
-	yt.seed("PLcov", "ninV", "Nine Inch Nails - Hurt (Official Video)")
+	yt := fakeapi.NewChannel()
+	yt.Seed("PLway", "junkV", "Totally Unrelated Song")
+	yt.Seed("PLcov", "ninV", "Nine Inch Nails - Hurt (Official Video)")
 	path := filepath.Join(t.TempDir(), "run.csv")
 	out, errOut := runLines(t, newTestApp(t, yt), "youtube add Way Covers -y --report "+path, "exit")
 	if errOut != "" {
@@ -31,7 +34,9 @@ func TestYouTubeAddReportCSV(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Join(records[0], ",") != strings.Join(reportHeader, ",") {
+	// The header is part of the report format: a change here breaks users' spreadsheets.
+	const header = "playlist,position,spotify_artists,spotify_track,spotify_track_url,status,youtube_title,youtube_channel,youtube_video_url,why,attribution"
+	if strings.Join(records[0], ",") != header {
 		t.Errorf("header = %v", records[0])
 	}
 	// playlist, position, track, status, youtube url
@@ -55,7 +60,7 @@ func TestYouTubeAddReportCSV(t *testing.T) {
 		if got != w {
 			t.Errorf("row %d = %v, want %v", i+1, got, w)
 		}
-		if r[10] != reportAttribution {
+		if r[10] != report.Attribution {
 			t.Errorf("row %d attribution = %q", i+1, r[10])
 		}
 	}
@@ -65,12 +70,12 @@ func TestYouTubeAddReportCSV(t *testing.T) {
 }
 
 func TestYouTubeAddReportJSONEvenWhenCancelled(t *testing.T) {
-	yt := newAddFake()
+	yt := fakeapi.NewChannel()
 	path := filepath.Join(t.TempDir(), "run.json")
 	runLines(t, newTestApp(t, yt), "youtube add Covers --report "+path, "n", "exit")
 	var got struct {
-		Attribution string      `json:"attribution"`
-		Rows        []reportRow `json:"rows"`
+		Attribution string       `json:"attribution"`
+		Rows        []report.Row `json:"rows"`
 	}
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -79,7 +84,7 @@ func TestYouTubeAddReportJSONEvenWhenCancelled(t *testing.T) {
 	if err := json.Unmarshal(b, &got); err != nil {
 		t.Fatal(err)
 	}
-	if got.Attribution != reportAttribution || len(got.Rows) != 2 || got.Rows[0].Status != "to add (not done)" {
+	if got.Attribution != report.Attribution || len(got.Rows) != 2 || got.Rows[0].Status != "to add (not done)" {
 		t.Errorf("unexpected report %+v", got)
 	}
 }
@@ -88,31 +93,16 @@ func TestYouTubeAddReportPathCheckedBeforeLogin(t *testing.T) {
 	dir := t.TempDir()
 	existing := filepath.Join(dir, "old.csv")
 	os.WriteFile(existing, []byte("keep me"), 0o600)
-	yt := newAddFake()
+	yt := fakeapi.NewChannel()
 	_, errOut := runLines(t, newTestApp(t, yt),
 		"youtube add Covers --report "+existing,
 		"youtube add Covers --report "+filepath.Join(dir, "run.txt"),
 		"exit")
 	mustContain(t, "stderr", errOut, "already exists; choose another file name", "use a .csv or .json file name")
-	if searches, _ := yt.counts(); searches != 0 {
+	if searches, _ := counts(yt); searches != 0 {
 		t.Errorf("searches = %d, want 0", searches)
 	}
 	if b, _ := os.ReadFile(existing); string(b) != "keep me" {
 		t.Error("an existing file must never be overwritten")
-	}
-}
-
-func TestCellDefusesFormulas(t *testing.T) {
-	for in, want := range map[string]string{
-		"=HYPERLINK(\"x\")": "'=HYPERLINK(\"x\")",
-		"+1":                "'+1",
-		"-Topic":            "'-Topic",
-		"@cmd":              "'@cmd",
-		"Hallelujah":        "Hallelujah",
-		"":                  "",
-	} {
-		if got := cell(in); got != want {
-			t.Errorf("cell(%q) = %q, want %q", in, got, want)
-		}
 	}
 }

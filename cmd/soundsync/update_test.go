@@ -8,27 +8,12 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+
+	"github.com/CharlyCeballos/soundsync/internal/update"
 )
 
-func TestParseVersion(t *testing.T) {
-	for in, want := range map[string]bool{
-		"v1.2.3": true, "v0.10.0": true,
-		"1.2.3": false, "v1.2": false, "v1.2.3-rc.1": false, "dev": false, "": false,
-		"v99999999999999999999.0.0": false,
-	} {
-		if _, ok := parseVersion(in); ok != want {
-			t.Errorf("parseVersion(%q) ok = %v, want %v", in, ok, want)
-		}
-	}
-	a, _ := parseVersion("v0.10.0")
-	b, _ := parseVersion("v0.9.9")
-	if !newerVersion(a, b) || newerVersion(b, a) || newerVersion(a, a) {
-		t.Error("v0.10.0 must be newer than v0.9.9, and a version is not newer than itself")
-	}
-}
-
 func TestCheckForUpdate(t *testing.T) {
-	const page = releasePagePrefix + "tag/v0.2.0"
+	const page = update.ReleasePagePrefix + "tag/v0.2.0"
 	cases := []struct {
 		name    string
 		current string

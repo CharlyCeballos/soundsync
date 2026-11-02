@@ -75,6 +75,24 @@ jobs:
           sudo dpkg -i "dist/soundsync_${VERSION}_amd64.deb"
           soundsync version | tee /dev/stderr | grep -F "soundsync $TAG "
 
+      # Desktop app (todo 4.6): .deb and .msi, built in Debian 13 (the GUI
+      # links its GTK and WebKitGTK) by the script CI runs; the host's Go and
+      # wails3 are mounted read-only. The .deb is installed and run inside.
+      - name: wails3
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.1.0
+      - name: gui packages
+        run: |
+          docker run --rm -e TAG \
+            -v "$PWD:/src" -w /src \
+            -v "$(go env GOROOT):/usr/local/go:ro" -v "$(go env GOPATH)/bin:/opt/gobin:ro" \
+            -e PATH=/usr/local/go/bin:/opt/gobin:/usr/sbin:/usr/bin:/sbin:/bin \
+            -e GOFLAGS=-buildvcs=false -e GOTOOLCHAIN=local \
+            debian:trixie@sha256:2dc419c6d7fe3dad0a2f9fd469c34cc90b0f9ba642d8fde837fe3d7d34a0e7f1 \
+            bash -c 'apt-get update -qq &&
+              apt-get install -y -qq --no-install-recommends ca-certificates build-essential pkg-config \
+                libgtk-4-dev libwebkitgtk-6.0-dev nodejs npm wixl >/dev/null &&
+              gui/build/package.sh "$TAG" dist --smoke'
+
       - name: checksums
         working-directory: dist
         run: sha256sum -- * > SHA256SUMS

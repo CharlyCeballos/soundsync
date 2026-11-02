@@ -10,6 +10,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/CharlyCeballos/soundsync/internal/i18n"
+	"github.com/CharlyCeballos/soundsync/internal/session"
 	"github.com/CharlyCeballos/soundsync/internal/spotify"
 
 	"github.com/spf13/cobra"
@@ -36,12 +37,11 @@ func runSpotifyPlaylists(ctx context.Context, out io.Writer, a *app, _ []string)
 		return err
 	}
 	// Always refresh: the library may have changed since the last listing.
-	playlists, err := s.client.MyPlaylists(ctx)
+	playlists, err := s.Playlists(ctx, true)
 	if err != nil {
 		return err
 	}
-	s.playlists = playlists
-	printPlaylists(out, playlists, s.me.ID)
+	printPlaylists(out, playlists, s.Me.ID)
 	return nil
 }
 
@@ -55,10 +55,10 @@ func runSpotifyTracks(ctx context.Context, out io.Writer, a *app, args []string)
 	if err != nil {
 		return err
 	}
-	if p.Name != "" && p.AccessFor(s.me.ID) == spotify.AccessFollowed {
+	if p.Name != "" && p.AccessFor(s.Me.ID) == spotify.AccessFollowed {
 		return fmt.Errorf(i18n.T("%q belongs to another user: Spotify does not let Development Mode apps read it"), p.Name)
 	}
-	entries, err := s.client.PlaylistItems(ctx, p.ID)
+	entries, err := s.Client.PlaylistItems(ctx, p.ID)
 	if err != nil {
 		var apiErr *spotify.APIError
 		if errors.As(err, &apiErr) && (apiErr.Status == 403 || apiErr.Status == 404) {
@@ -76,25 +76,22 @@ func joinArgs(args []string) string { return strings.Join(args, " ") }
 
 // resolvePlaylist turns a name, ID, link or URI into a playlist. The library
 // listing is fetched once per session and reused for later lookups.
-func resolvePlaylist(ctx context.Context, s *spotifySession, ref string) (spotify.Playlist, error) {
-	if s.playlists == nil {
-		playlists, err := s.client.MyPlaylists(ctx)
-		if err != nil {
-			return spotify.Playlist{}, err
-		}
-		s.playlists = playlists
+func resolvePlaylist(ctx context.Context, s *session.Spotify, ref string) (spotify.Playlist, error) {
+	library, err := s.Playlists(ctx, false)
+	if err != nil {
+		return spotify.Playlist{}, err
 	}
 
 	id, idErr := parsePlaylistRef(ref)
 	if idErr == nil {
-		for _, p := range s.playlists {
+		for _, p := range library {
 			if p.ID == id {
 				return p, nil
 			}
 		}
 	}
 
-	matches := spotify.FindPlaylists(s.playlists, ref)
+	matches := spotify.FindPlaylists(library, ref)
 	switch {
 	case len(matches) == 1:
 		return matches[0], nil

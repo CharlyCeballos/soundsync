@@ -27,11 +27,11 @@ func runSpotifyLogin(ctx context.Context, out io.Writer, a *app, _ []string) err
 	if err != nil {
 		return err
 	}
-	name := s.me.DisplayName
+	name := s.Me.DisplayName
 	if name == "" {
-		name = s.me.ID
+		name = s.Me.ID
 	}
-	fmt.Fprintf(out, i18n.T("Logged in to Spotify as %s (user id %s). The token stays in memory only.\n"), name, s.me.ID)
+	fmt.Fprintf(out, i18n.T("Logged in to Spotify as %s (user id %s). The token stays in memory only.\n"), name, s.Me.ID)
 	return nil
 }
 
@@ -40,6 +40,6 @@ func runYouTubeLogin(ctx context.Context, out io.Writer, a *app, _ []string) err
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(out, i18n.T("Logged in to YouTube. Playlists would be created on channel %q (id %s).\n"), s.channel.Title, s.channel.ID)
+	fmt.Fprintf(out, i18n.T("Logged in to YouTube. Playlists would be created on channel %q (id %s).\n"), s.Channel.Title, s.Channel.ID)
 	return nil
 }

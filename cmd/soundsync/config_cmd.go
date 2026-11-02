@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"os"
 	"text/tabwriter"
 
 	"github.com/CharlyCeballos/soundsync/internal/config"
@@ -31,21 +30,22 @@ func newConfigCmd(a *app) *cobra.Command {
 }
 
 func runConfigCheck(out io.Writer, envFile string) error {
-	loaded, err := config.LoadDotEnv(envFile)
+	f, err := config.ReadFile(envFile)
 	if err != nil {
 		return err
 	}
+	loaded := f.Loaded
 	source := envFile + " (loaded)"
 	if !loaded {
 		source = envFile + " (not found, using environment only)"
 	}
 	fmt.Fprintf(out, i18n.T("Config: %s\n"), source)
-	if dir := defaultConfigDir(); !loaded && dir != "" {
+	if dir := config.Dir(); !loaded && dir != "" {
 		fmt.Fprintf(out, i18n.T("Soundsync looks for .env in the current folder, then in %s; --env-file picks another file.\n"), dir)
 	}
 	fmt.Fprintln(out)
 
-	cfg, cfgErr := config.FromEnv(os.Getenv)
+	cfg, cfgErr := config.FromEnv(f.Getenv)
 
 	tw := tabwriter.NewWriter(out, 0, 0, 3, ' ', 0)
 	// Client IDs and secrets are shown only as set/missing: never echo them.

@@ -1,8 +1,8 @@
 # Soundsync privacy policy
 
-Version 2026-11-01. Soundsync asks you to accept this policy again whenever this version changes.
+Version 2026-11-03. Soundsync asks you to accept this policy again whenever this version changes.
 
-Soundsync is a free, open source program that runs on your own computer and copies your Spotify playlists to YouTube. There is no Soundsync server and no Soundsync account. The author never receives your data.
+Soundsync is a free, open source program that runs on your own computer, as a desktop app or a command-line tool, and copies your Spotify playlists to YouTube. There is no Soundsync server and no Soundsync account. The author never receives your data.
 
 ## YouTube API Services
 
@@ -19,26 +19,27 @@ Spotify's handling of your data is described in the [Spotify Privacy Policy](htt
 
 ## What Soundsync changes
 
-Only on your YouTube channel, and only after showing you a summary and getting your confirmation (or when you run a command with `--yes`): it creates playlists, adds a line to the description of a playlist you choose to reuse, adds videos to playlists, and removes videos that no longer match a track in the Spotify playlist. It never changes the privacy of an existing playlist. It never writes to Spotify.
+Only on your YouTube channel, and only after showing you a summary and getting your confirmation (in the desktop app, when you press **Write to YouTube**; on the command line, when you answer yes or run a command with `--yes`): it creates playlists, adds a line to the description of a playlist you choose to reuse, adds videos to playlists, and removes videos that no longer match a track in the Spotify playlist. It never changes the privacy of an existing playlist. It never writes to Spotify.
 
 ## What Soundsync stores
 
 - **Nothing from Spotify or YouTube is saved on your computer.** Login tokens live in memory only and disappear when Soundsync exits. Matches found during a session are also kept in memory only.
 - One small file records that you accepted this policy, and which version: `%APPDATA%\soundsync\privacy-accepted` on Windows, `~/.config/soundsync/privacy-accepted` on Linux. It holds no personal data.
 - Reports are written to disk only when you ask for one, to the file you name.
-- Your `.env` file with your own Spotify and Google client IDs may live in that same folder. You create it; Soundsync only reads it.
+- Your `.env` file with your own Spotify and Google client IDs may live in that same folder. You create it (the desktop app can create an empty one for you to fill in); Soundsync only reads it.
+- The desktop app keeps its window's web cache in that folder too, under `webview`: the app's own page and the language you picked. It holds nothing from Spotify or YouTube.
 
 Soundsync identifies the YouTube playlists it manages by a line it writes in their description (`soundsync:spotify:<playlist ID>`). That line lives on YouTube, under your control: deleting it makes Soundsync forget the link.
 
 ## What Soundsync shares
 
-Soundsync talks only to Spotify (accounts.spotify.com, api.spotify.com) and Google (accounts.google.com, oauth2.googleapis.com, www.googleapis.com), and only to do what you ask. When you open `soundsync shell`, a released build also asks GitHub (api.github.com) for the latest version number so it can tell you about updates; GitHub sees your IP address and your Soundsync version, nothing else about you. There is no analytics, telemetry or advertising.
+Soundsync talks only to Spotify (accounts.spotify.com, api.spotify.com) and Google (accounts.google.com, oauth2.googleapis.com, www.googleapis.com), and only to do what you ask. When you open the desktop app or `soundsync shell`, a released build also asks GitHub (api.github.com) for the latest version number so it can tell you about updates; GitHub sees your IP address and your Soundsync version, nothing else about you. Links you click in the desktop app open in your own browser. There is no analytics, telemetry or advertising.
 
 ## Revoking access and deleting data
 
-- Soundsync revokes its Google access every time it exits.
+- Soundsync revokes its Google access every time it exits, and when you press **Disconnect** next to YouTube in the desktop app.
 - You can revoke Google access at any time at [myaccount.google.com/permissions](https://myaccount.google.com/permissions), and Spotify access at [spotify.com/account/apps](https://www.spotify.com/account/apps/).
-- To delete everything Soundsync keeps on your computer, delete the `privacy-accepted` file above.
+- To delete everything Soundsync keeps on your computer, delete that folder (`%APPDATA%\soundsync` or `~/.config/soundsync`): the `privacy-accepted` file, your `.env` and the desktop app's `webview` cache. Uninstalling the app leaves it in place.
 
 ## Contact
 

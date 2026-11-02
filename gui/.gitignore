@@ -1,0 +1,10 @@
+.task
+.wails
+bin
+*.syso
+frontend/dist
+frontend/node_modules
+frontend/bindings
+frontend/e2e/node_modules
+frontend/e2e/playwright-report
+frontend/e2e/test-results

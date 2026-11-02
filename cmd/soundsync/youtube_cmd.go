@@ -6,6 +6,7 @@ import (
 	"io"
 	"text/tabwriter"
 
+	"github.com/CharlyCeballos/soundsync/internal/copier"
 	"github.com/CharlyCeballos/soundsync/internal/i18n"
 	"github.com/CharlyCeballos/soundsync/internal/transfer"
 	"github.com/CharlyCeballos/soundsync/internal/youtube"
@@ -34,11 +35,11 @@ func runYouTubePlaylists(ctx context.Context, out io.Writer, a *app, _ []string)
 	if err != nil {
 		return err
 	}
-	playlists, err := yt.client.MyPlaylists(ctx)
+	playlists, err := yt.Client.MyPlaylists(ctx)
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(out, i18n.T("\nPlaylists on channel %q: %d\n\n"), yt.channel.Title, len(playlists))
+	fmt.Fprintf(out, i18n.T("\nPlaylists on channel %q: %d\n\n"), yt.Channel.Title, len(playlists))
 	tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(tw, i18n.T("  #\tTITLE\tVIDEOS\tPRIVACY\tSOUNDSYNC\tLINK"))
 	for i, p := range playlists {
@@ -49,7 +50,7 @@ func runYouTubePlaylists(ctx context.Context, out io.Writer, a *app, _ []string)
 		fmt.Fprintf(tw, i18n.T("  %d\t%s\t%d\t%s\t%s\t%s\n"), i+1, p.Title, p.ItemCount, p.Privacy, source, p.URL())
 	}
 	tw.Flush()
-	fmt.Fprintf(out, i18n.T("\n%s Quota used this session: %d units.\n"), youtubeAttribution, yt.client.UnitsUsed())
+	fmt.Fprintf(out, i18n.T("\n%s Quota used this session: %d units.\n"), youtubeAttribution, yt.Client.UnitsUsed())
 	return nil
 }
 
@@ -90,27 +91,27 @@ func runYouTubeCreate(ctx context.Context, out io.Writer, a *app, args []string,
 	if err != nil {
 		return err
 	}
-	existing, err := yt.client.MyPlaylists(ctx)
+	existing, err := yt.Client.MyPlaylists(ctx)
 	if err != nil {
 		return err
 	}
 
-	fmt.Fprintf(out, i18n.T("\nYouTube channel: %q\n"), yt.channel.Title)
+	fmt.Fprintf(out, i18n.T("\nYouTube channel: %q\n"), yt.Channel.Title)
 	dests, err := chooseDestinations(out, a, existing, srcs, opts.yes)
 	if err != nil {
 		return err
 	}
-	var todo []*destination
+	var todo []*copier.Destination
 	for i := range dests {
 		d := &dests[i]
-		fmt.Fprintf(out, i18n.T("\nSpotify playlist: %q (%s)\n"), d.src.Name, d.src.URL())
-		switch d.kind {
-		case destExisting:
-			p := d.target
+		fmt.Fprintf(out, i18n.T("\nSpotify playlist: %q (%s)\n"), d.Source.Name, d.Source.URL())
+		switch d.Kind {
+		case copier.Existing:
+			p := d.Target
 			fmt.Fprintf(out, i18n.T("Already on YouTube as %q (%s, %d videos).\n  %s\n"), p.Title, p.Privacy, p.ItemCount, p.MusicURL())
 			continue
-		case destAdopt:
-			fmt.Fprintf(out, i18n.T("Will use %q (%s, %d videos).\n"), d.target.Title, d.target.Privacy, d.target.ItemCount)
+		case copier.Adopt:
+			fmt.Fprintf(out, i18n.T("Will use %q (%s, %d videos).\n"), d.Target.Title, d.Target.Privacy, d.Target.ItemCount)
 		default:
 			fmt.Fprintln(out, i18n.T("Will be created."))
 		}
@@ -119,14 +120,14 @@ func runYouTubeCreate(ctx context.Context, out io.Writer, a *app, args []string,
 
 	if len(todo) == 0 {
 		fmt.Fprintln(out, i18n.T("\nNothing to create."))
-		fmt.Fprintf(out, i18n.T("%s Quota used this session: %d units.\n"), youtubeAttribution, yt.client.UnitsUsed())
+		fmt.Fprintf(out, i18n.T("%s Quota used this session: %d units.\n"), youtubeAttribution, yt.Client.UnitsUsed())
 		return nil
 	}
 
 	fmt.Fprintf(out, i18n.T("\nAbout to change %d playlist(s) on channel %q: %d units (used so far: %d).\n"),
-		len(todo), yt.channel.Title, youtube.WriteUnits*len(todo), yt.client.UnitsUsed())
+		len(todo), yt.Channel.Title, youtube.WriteUnits*len(todo), yt.Client.UnitsUsed())
 	for _, d := range todo {
-		fmt.Fprintf(out, i18n.T("  %q: %s\n"), d.src.Name, d.destAction(opts.privacy))
+		fmt.Fprintf(out, i18n.T("  %q: %s\n"), d.Source.Name, destAction(*d, opts.privacy))
 	}
 	if !opts.yes && !a.confirm(out, "Go ahead?") {
 		fmt.Fprintln(out, i18n.T("Cancelled. Nothing was changed."))
@@ -134,15 +135,15 @@ func runYouTubeCreate(ctx context.Context, out io.Writer, a *app, args []string,
 	}
 
 	for _, d := range todo {
-		if err := ensureDestination(ctx, yt.client, d, opts.privacy); err != nil {
-			return explainQuota(err)
+		if err := d.Ensure(ctx, yt.Client, opts.privacy); err != nil {
+			return copier.ExplainQuota(err)
 		}
-		if d.kind == destCreate {
-			fmt.Fprintf(out, i18n.T("\nCreated %q (%s).\n  %s\n  %s\n"), d.target.Title, d.target.Privacy, d.target.URL(), d.target.MusicURL())
+		if d.Kind == copier.Create {
+			fmt.Fprintf(out, i18n.T("\nCreated %q (%s).\n  %s\n  %s\n"), d.Target.Title, d.Target.Privacy, d.Target.URL(), d.Target.MusicURL())
 		} else {
-			fmt.Fprintf(out, i18n.T("\n%q now carries the Soundsync line; Soundsync will keep it in sync.\n  %s\n"), d.target.Title, d.target.MusicURL())
+			fmt.Fprintf(out, i18n.T("\n%q now carries the Soundsync line; Soundsync will keep it in sync.\n  %s\n"), d.Target.Title, d.Target.MusicURL())
 		}
 	}
-	fmt.Fprintf(out, i18n.T("%s Quota used this session: %d units.\n"), youtubeAttribution, yt.client.UnitsUsed())
+	fmt.Fprintf(out, i18n.T("%s Quota used this session: %d units.\n"), youtubeAttribution, yt.Client.UnitsUsed())
 	return nil
 }

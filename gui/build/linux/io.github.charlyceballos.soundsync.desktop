@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Soundsync
+GenericName=Playlist copier
+GenericName[es]=Copiador de playlists
+Comment=Copy your Spotify playlists to YouTube
+Comment[es]=Copia tus playlists de Spotify a YouTube
+Exec=soundsync-gui
+Icon=io.github.charlyceballos.soundsync
+Terminal=false
+Categories=AudioVideo;Audio;
+Keywords=playlist;music;copy;
+StartupWMClass=soundsync-gui

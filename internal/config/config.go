@@ -1,7 +1,7 @@
 // Package config loads Soundsync's local OAuth client configuration.
 //
-// Values come from process environment variables, optionally seeded from a
-// .env file. Real environment variables always win over the file.
+// Values come from process environment variables and a .env file; real
+// environment variables always win over the file.
 // Nothing here is ever written to disk or logged.
 package config
 
@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -46,20 +47,54 @@ type Config struct {
 	GoogleRedirectURI  *url.URL
 }
 
-// LoadDotEnv seeds the process environment from the file at path without
-// overriding variables that are already set. A missing file is not an error;
-// loaded reports whether the file existed and was read.
-func LoadDotEnv(path string) (loaded bool, err error) {
-	if _, statErr := os.Stat(path); statErr != nil {
-		if errors.Is(statErr, fs.ErrNotExist) {
-			return false, nil
+// FileName is the name of the file Soundsync reads its OAuth clients from.
+const FileName = ".env"
+
+// Dir is Soundsync's folder under the OS config directory (%APPDATA% on
+// Windows, ~/.config on Linux), or "" when the OS has none. It holds the
+// .env of an installed copy and the privacy-policy acceptance.
+func Dir() string {
+	dir, err := os.UserConfigDir()
+	if err != nil {
+		return ""
+	}
+	return filepath.Join(dir, "soundsync")
+}
+
+// File is a .env file read into memory. Reading never touches the process
+// environment, so reading the file again picks up later edits (a GUI stays
+// open while the user fixes the file).
+type File struct {
+	Path   string
+	Loaded bool // the file existed and was read
+	vars   map[string]string
+}
+
+// ReadFile reads the .env file at path. A missing file is not an error.
+func ReadFile(path string) (File, error) {
+	f := File{Path: path}
+	if _, err := os.Stat(path); err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return f, nil
 		}
-		return false, fmt.Errorf("read %s: %w", path, statErr)
+		return f, fmt.Errorf("read %s: %w", path, err)
 	}
-	if err := godotenv.Load(path); err != nil {
-		return false, fmt.Errorf("parse %s: %w", path, err)
+	vars, err := godotenv.Read(path)
+	if err != nil {
+		return f, fmt.Errorf("parse %s: %w", path, err)
 	}
-	return true, nil
+	f.Loaded, f.vars = true, vars
+	return f, nil
+}
+
+// Getenv returns key from the process environment when it is set there,
+// even empty (real environment variables win over the file), else from the
+// file. Pass it to FromEnv.
+func (f File) Getenv(key string) string {
+	if v, ok := os.LookupEnv(key); ok {
+		return v
+	}
+	return f.vars[key]
 }
 
 // FromEnv builds and validates a Config using getenv (usually os.Getenv).

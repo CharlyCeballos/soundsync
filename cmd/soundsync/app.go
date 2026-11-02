@@ -3,33 +3,19 @@ package main
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"strings"
-	"sync"
-	"time"
 
 	"github.com/CharlyCeballos/soundsync/internal/config"
 	"github.com/CharlyCeballos/soundsync/internal/i18n"
 	"github.com/CharlyCeballos/soundsync/internal/oauth"
-	"github.com/CharlyCeballos/soundsync/internal/spotify"
-	"github.com/CharlyCeballos/soundsync/internal/youtube"
+	"github.com/CharlyCeballos/soundsync/internal/session"
 
 	"github.com/spf13/cobra"
-	"golang.org/x/oauth2"
-)
-
-const (
-	// loginTimeout bounds how long we wait for the user in the browser.
-	// It covers the login only, never the work done afterwards.
-	loginTimeout = 5 * time.Minute
-	// revokeTimeout bounds the best-effort token revocation on exit.
-	revokeTimeout = 10 * time.Second
 )
 
 // app holds the state of one Soundsync process: configuration and the
@@ -48,38 +34,21 @@ type app struct {
 	baseCtx context.Context
 
 	cfg *config.Config
-	sp  *spotifySession
-	yt  *youtubeSession
+	sp  *session.Spotify
+	yt  *session.YouTube
 
 	// readLine reads one line of user input. The shell points it at its own
 	// scanner so confirmations do not steal lines from the command stream.
 	readLine func() (string, error)
 
 	// Session constructors; tests replace them to avoid real logins.
-	newSpotify func(ctx context.Context, out io.Writer, a *app) (*spotifySession, error)
-	newYouTube func(ctx context.Context, out io.Writer, a *app) (*youtubeSession, error)
-}
-
-type spotifySession struct {
-	client *spotify.Client
-	me     spotify.User
-	// playlists caches the library listing for name lookups; nil until fetched.
-	playlists []spotify.Playlist
-}
-
-type youtubeSession struct {
-	client  *youtube.Client
-	channel youtube.Channel
-	tok     *oauth2.Token
-	// picks remembers the video found for each search query (todo 2.16):
-	// running add again in the same session costs no searches. It lives in
-	// RAM and dies with the session. Values are transfer.Matched.
-	picks sync.Map
+	newSpotify func(ctx context.Context, out io.Writer, a *app) (*session.Spotify, error)
+	newYouTube func(ctx context.Context, out io.Writer, a *app) (*session.YouTube, error)
 }
 
 func newApp() *app {
 	stdin := bufio.NewReader(os.Stdin)
-	configDir := defaultConfigDir()
+	configDir := config.Dir()
 	return &app{
 		envFile:   defaultEnvFile(configDir),
 		configDir: configDir,
@@ -133,10 +102,11 @@ func (a *app) config() (config.Config, error) {
 	if a.cfg != nil {
 		return *a.cfg, nil
 	}
-	if _, err := config.LoadDotEnv(a.envFile); err != nil {
+	f, err := config.ReadFile(a.envFile)
+	if err != nil {
 		return config.Config{}, err
 	}
-	cfg, err := config.FromEnv(os.Getenv)
+	cfg, err := config.FromEnv(f.Getenv)
 	if err != nil {
 		return config.Config{}, fmt.Errorf(i18n.T("%w\nrun 'soundsync config check' for details"), err)
 	}
@@ -145,7 +115,7 @@ func (a *app) config() (config.Config, error) {
 }
 
 // spotify returns the Spotify session, logging in on first use.
-func (a *app) spotify(ctx context.Context, out io.Writer) (*spotifySession, error) {
+func (a *app) spotify(ctx context.Context, out io.Writer) (*session.Spotify, error) {
 	if a.sp == nil {
 		s, err := a.newSpotify(ctx, out, a)
 		if err != nil {
@@ -157,7 +127,7 @@ func (a *app) spotify(ctx context.Context, out io.Writer) (*spotifySession, erro
 }
 
 // youtube returns the YouTube session, logging in on first use.
-func (a *app) youtube(ctx context.Context, out io.Writer) (*youtubeSession, error) {
+func (a *app) youtube(ctx context.Context, out io.Writer) (*session.YouTube, error) {
 	if a.yt == nil {
 		s, err := a.newYouTube(ctx, out, a)
 		if err != nil {
@@ -175,9 +145,7 @@ func (a *app) close(out io.Writer) {
 	if a.yt == nil {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), revokeTimeout)
-	defer cancel()
-	err := youtube.Revoke(ctx, &http.Client{Timeout: revokeTimeout}, a.yt.tok)
+	err := a.yt.Revoke()
 	a.yt = nil
 	if err != nil {
 		fmt.Fprintf(out, i18n.T("warning: %v; revoke it manually at https://myaccount.google.com/permissions\n"), err)
@@ -186,7 +154,7 @@ func (a *app) close(out io.Writer) {
 	fmt.Fprintln(out, i18n.T("Google access revoked. No Spotify or YouTube data was kept on disk, except reports you asked for."))
 }
 
-func loginSpotify(ctx context.Context, out io.Writer, a *app) (*spotifySession, error) {
+func loginSpotify(ctx context.Context, out io.Writer, a *app) (*session.Spotify, error) {
 	cfg, err := a.config()
 	if err != nil {
 		return nil, err
@@ -194,29 +162,10 @@ func loginSpotify(ctx context.Context, out io.Writer, a *app) (*spotifySession, 
 	if err := a.ensurePolicyAccepted(out); err != nil {
 		return nil, err
 	}
-	flow := spotify.NewFlow(cfg.SpotifyClientID, cfg.SpotifyRedirectURI)
-	flow.Logf = noteLogger(out)
-
-	loginCtx, cancel := context.WithTimeout(ctx, loginTimeout)
-	defer cancel()
-	tok, err := flow.Login(loginCtx, browserOpener(out, "Spotify"))
-	if err != nil {
-		return nil, explainLoginError("Spotify", err)
-	}
-
-	client := spotify.NewClient(flow.Client(a.baseCtx, tok))
-	me, err := client.Me(ctx)
-	if err != nil {
-		var apiErr *spotify.APIError
-		if errors.As(err, &apiErr) && apiErr.Status == 403 {
-			return nil, fmt.Errorf(i18n.T("%w\nhint: add this Spotify account under User Management in your app's dashboard, and check that the app owner's Premium is active"), err)
-		}
-		return nil, err
-	}
-	return &spotifySession{client: client, me: me}, nil
+	return session.LoginSpotify(ctx, a.baseCtx, cfg, terminalUI(out, "Spotify"))
 }
 
-func loginYouTube(ctx context.Context, out io.Writer, a *app) (*youtubeSession, error) {
+func loginYouTube(ctx context.Context, out io.Writer, a *app) (*session.YouTube, error) {
 	cfg, err := a.config()
 	if err != nil {
 		return nil, err
@@ -224,35 +173,24 @@ func loginYouTube(ctx context.Context, out io.Writer, a *app) (*youtubeSession, 
 	if err := a.ensurePolicyAccepted(out); err != nil {
 		return nil, err
 	}
-	flow := youtube.NewFlow(cfg.GoogleClientID, cfg.GoogleClientSecret, cfg.GoogleRedirectURI)
-	flow.Logf = noteLogger(out)
-
-	loginCtx, cancel := context.WithTimeout(ctx, loginTimeout)
-	defer cancel()
-	tok, err := flow.Login(loginCtx, browserOpener(out, "YouTube"))
+	s, err := session.AuthorizeYouTube(ctx, a.baseCtx, cfg, terminalUI(out, "YouTube"))
 	if err != nil {
-		return nil, explainLoginError("YouTube", err)
+		return nil, err
 	}
-	s := &youtubeSession{client: youtube.NewClient(flow.Client(a.baseCtx, tok)), tok: tok}
-
-	ch, err := s.client.MyChannel(ctx)
-	if err != nil {
+	if err := s.LoadChannel(ctx); err != nil {
 		// The token exists but the session is unusable: revoke it now rather
 		// than keep a half-built session around.
 		a.yt = s
 		a.close(out)
-		var apiErr *youtube.APIError
-		switch {
-		case errors.Is(err, youtube.ErrNoChannel):
-			return nil, fmt.Errorf(i18n.T("%w\nhint: create a channel at https://www.youtube.com/create_channel, or log in with another Google account"), err)
-		case errors.As(err, &apiErr) && apiErr.Reason == "accessNotConfigured":
-			return nil, fmt.Errorf(i18n.T("%w\nhint: enable the YouTube Data API v3 in your Google Cloud project (docs/setup.md, step 2)"), err)
-		}
 		return nil, err
 	}
-	s.channel = ch
 	fmt.Fprintln(out, i18n.T("Quota used: 1 unit (channels.list)."))
 	return s, nil
+}
+
+// terminalUI prints the login URL and notes to the terminal.
+func terminalUI(out io.Writer, provider string) session.UI {
+	return session.UI{Open: browserOpener(out, provider), Logf: noteLogger(out)}
 }
 
 // runner is the body of a command that may need logins.
@@ -287,20 +225,4 @@ func browserOpener(out io.Writer, provider string) func(string) error {
 
 func noteLogger(out io.Writer) func(string, ...any) {
 	return func(format string, args ...any) { fmt.Fprintf(out, i18n.T("note: ")+format+"\n", args...) }
-}
-
-func explainLoginError(provider string, err error) error {
-	var pe *oauth.ProviderError
-	var re *oauth2.RetrieveError
-	switch {
-	case errors.As(err, &pe) && pe.Code == "access_denied":
-		return fmt.Errorf(i18n.T("%s login was cancelled or denied in the browser"), provider)
-	case errors.Is(err, context.DeadlineExceeded):
-		return fmt.Errorf(i18n.T("%s login timed out after %s"), provider, loginTimeout)
-	case errors.Is(err, context.Canceled):
-		return fmt.Errorf(i18n.T("%s login cancelled"), provider)
-	case errors.As(err, &re) && re.ErrorCode == "invalid_client":
-		return fmt.Errorf(i18n.T("%w\nhint: the client ID or secret in .env does not match the OAuth client in the console"), err)
-	}
-	return err
 }

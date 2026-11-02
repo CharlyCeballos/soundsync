@@ -9,13 +9,14 @@ import (
 	"sync"
 
 	"github.com/CharlyCeballos/soundsync/internal/i18n"
+	"github.com/CharlyCeballos/soundsync/internal/session"
 	"github.com/CharlyCeballos/soundsync/internal/spotify"
 )
 
 // resolveSources turns each argument into one Spotify playlist the user can
 // read. All problems are reported together, before anything costs quota.
 // The same playlist given twice is kept once.
-func resolveSources(ctx context.Context, sp *spotifySession, args []string) ([]spotify.Playlist, error) {
+func resolveSources(ctx context.Context, sp *session.Spotify, args []string) ([]spotify.Playlist, error) {
 	var out []spotify.Playlist
 	var problems []string
 	seen := map[string]bool{}
@@ -26,7 +27,7 @@ func resolveSources(ctx context.Context, sp *spotifySession, args []string) ([]s
 			problems = append(problems, err.Error())
 		case p.Name == "":
 			problems = append(problems, fmt.Sprintf(i18n.T("%q is not in your Spotify library; run 'spotify playlists' to see them"), arg))
-		case p.AccessFor(sp.me.ID) == spotify.AccessFollowed:
+		case p.AccessFor(sp.Me.ID) == spotify.AccessFollowed:
 			problems = append(problems, fmt.Sprintf(i18n.T("%q belongs to another user: Spotify does not let Development Mode apps read it"), p.Name))
 		case seen[p.ID]:
 			// Same playlist named twice: process it once.
