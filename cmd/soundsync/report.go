@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/CharlyCeballos/soundsync/internal/copier"
 	"github.com/CharlyCeballos/soundsync/internal/i18n"
 	"github.com/CharlyCeballos/soundsync/internal/spotify"
 	"github.com/CharlyCeballos/soundsync/internal/transfer"
@@ -55,7 +56,7 @@ func checkReportPath(path string) error {
 }
 
 // saveReport writes the run's report; it refuses to replace an existing file.
-func saveReport(out io.Writer, path string, jobs []*addJob) error {
+func saveReport(out io.Writer, path string, jobs []*copier.Job) error {
 	rows := reportRows(jobs)
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
 	if errors.Is(err, fs.ErrExist) {
@@ -113,15 +114,15 @@ func cell(s string) string {
 
 // reportRows lists every track of every job in Spotify order, then the
 // videos removed (or to remove) from each YouTube playlist.
-func reportRows(jobs []*addJob) []reportRow {
+func reportRows(jobs []*copier.Job) []reportRow {
 	var rows []reportRow
 	for _, j := range jobs {
 		status := trackStatuses(j)
-		entries := append(append([]spotify.Entry(nil), j.tracks...), j.skipped...)
+		entries := append(append([]spotify.Entry(nil), j.Tracks...), j.Skipped...)
 		sort.Slice(entries, func(a, b int) bool { return entries[a].Position < entries[b].Position })
 		for _, e := range entries {
 			row := reportRow{
-				Playlist:       j.src.Name,
+				Playlist:       j.Source.Name,
 				Position:       e.Position,
 				SpotifyArtists: strings.Join(e.Track.Artists, ", "),
 				SpotifyTrack:   e.Track.Name,
@@ -134,19 +135,19 @@ func reportRows(jobs []*addJob) []reportRow {
 				if s.video.ID != "" {
 					row.YouTubeTitle, row.YouTubeChannel, row.YouTubeURL = s.video.Title, s.video.ChannelTitle, s.video.URL()
 				}
-			} else if j.err != nil {
+			} else if j.Err != nil {
 				row.Status = "not searched: the run stopped"
 			} else {
 				row.Status = "waiting: no searches left"
 			}
 			rows = append(rows, row)
 		}
-		for i, it := range j.plan.Extra {
+		for i, it := range j.Plan.Extra {
 			st := "removed"
-			if i >= j.removed {
+			if i >= j.Removed {
 				st = "to remove (not done)"
 			}
-			rows = append(rows, reportRow{Playlist: j.src.Name, Status: st, YouTubeTitle: it.Title, YouTubeChannel: it.Channel, YouTubeURL: it.URL()})
+			rows = append(rows, reportRow{Playlist: j.Source.Name, Status: st, YouTubeTitle: it.Title, YouTubeChannel: it.Channel, YouTubeURL: it.URL()})
 		}
 	}
 	return rows
@@ -159,25 +160,25 @@ type trackStatus struct {
 }
 
 // trackStatuses says what happened to each matched track, by position.
-func trackStatuses(j *addJob) map[int]trackStatus {
+func trackStatuses(j *copier.Job) map[int]trackStatus {
 	out := map[int]trackStatus{}
 	put := func(ms []transfer.Matched, status string) {
 		for _, m := range ms {
 			out[m.Entry.Position] = trackStatus{status: status, why: string(m.Reason), video: m.Video}
 		}
 	}
-	put(j.plan.Present, "already there")
-	put(j.plan.SameVideo, "same video as an earlier track")
-	put(j.plan.Unmatched, "no match")
-	put(j.leftOut, "left out: playlist full")
-	for i, m := range j.plan.ToAdd {
+	put(j.Plan.Present, "already there")
+	put(j.Plan.SameVideo, "same video as an earlier track")
+	put(j.Plan.Unmatched, "no match")
+	put(j.LeftOut, "left out: playlist full")
+	for i, m := range j.Plan.ToAdd {
 		st := "added"
-		if i >= j.added {
+		if i >= j.Added {
 			st = "to add (not done)"
 		}
 		out[m.Entry.Position] = trackStatus{status: st, why: string(m.Reason), video: m.Video}
 	}
-	for _, r := range j.plan.Replaced {
+	for _, r := range j.Plan.Replaced {
 		v := youtube.Video{ID: r.Item.VideoID, Title: r.Item.Title, ChannelTitle: r.Item.Channel}
 		out[r.Entry.Position] = trackStatus{status: "kept yours", why: "yours", video: v}
 	}

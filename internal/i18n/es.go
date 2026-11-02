@@ -36,6 +36,9 @@ var es = map[string]string{
 	"set":                      "definido",
 	"invalid":                  "inválido",
 
+	// internal/copier
+	"that playlist is not one of the playlists offered for this Spotify playlist": "esa playlist no es una de las que se ofrecieron para esta playlist de Spotify",
+
 	// destinations.go
 	"warning: %q (%s) carries the same Soundsync marker as another playlist; only the first one is used.\n":                                  "aviso: %q (%s) tiene el mismo marcador de Soundsync que otra playlist; solo se usa la primera.\n",
 	"your channel already has a playlist called %s that Soundsync did not create; run the command without --yes to choose whether to use it": "tu canal ya tiene una playlist llamada %s que Soundsync no creó; corre el comando sin --yes para elegir si la usas",
