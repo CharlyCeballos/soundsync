@@ -13,7 +13,7 @@ import (
 
 // Version matches the version line of PRIVACY.md. Changing it makes
 // everyone accept the policy again.
-const Version = "2026-11-02"
+const Version = "2026-11-03"
 
 // Links every consent notice shows (Policies III.A.1–A.2).
 const (

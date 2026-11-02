@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -27,6 +28,17 @@ func TestOlderVersionIsNotAccepted(t *testing.T) {
 	}
 	if Accepted(dir) {
 		t.Error("a new policy version must be accepted again")
+	}
+}
+
+// The version users accept must be the one PRIVACY.md shows.
+func TestVersionMatchesThePolicy(t *testing.T) {
+	b, err := os.ReadFile(filepath.Join("..", "..", "PRIVACY.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "Version " + Version + "."; !strings.Contains(string(b), want) {
+		t.Errorf("PRIVACY.md does not say %q: bump both together", want)
 	}
 }
 

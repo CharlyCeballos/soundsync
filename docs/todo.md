@@ -9,7 +9,7 @@ Estado: `todo` | `doing` | `done` | `blocked`
 
 Fase 1 cerrada (GO 2026-10-30, `planV2.md` escrito 2026-11-01). **Fase 2 cerrada 2026-11-01** (autor): todos los ítems done; pruebas unit, integración, CI y reales en verde (solo T.7 sigue todo: sin playlists colaborativas). **Fase 3 cerrada 2026-11-02** (autor): todos los ítems done; `v0.1.0` publicado (D.2) y probado como usuario nuevo en Windows 11 y en Debian 13. Ya se puede re-correr `youtube add` sobre "The Way" y "Covers" (2.17 conserva la corrección manual; verificado en real 2026-11-01). Playlists privadas de prueba **"Soundsync test"** (Spotify: Bohemian Rhapsody, Billie Jean, Take on Me; YouTube: igual): el autor las conserva para pruebas futuras (decisión 2026-11-02). Repo en `github.com/CharlyCeballos/soundsync` (aún PRIVATE, ver D.1).
 
-**Fase 4 (GUI) en la rama `phase4-gui`, 2026-11-02:** 4.1–4.6 hechos y probados con fakes, E2E, ventana real en Windows (sin cuentas), `.msi` real en Windows 11 y `.deb` en Debian 13 (WSL). Falta la prueba con cuentas reales (T.10), que necesita al autor: aceptar en la app la política `2026-11-02` (tiene aceptada la `2026-11-01`) y poner su `.env` en `%APPDATA%\soundsync\.env` (hoy no existe ahí). Diseño y desviaciones: `docs/specs/2026-11-02-phase4-gui-design.md`.
+**Fase 4 (GUI) en la rama `phase4-gui`, 2026-11-02:** 4.1–4.6 hechos y probados con fakes, E2E, ventana real en Windows (sin cuentas), `.msi` real en Windows 11 y `.deb` en Debian 13 (WSL). Falta la prueba con cuentas reales (T.10), que necesita al autor: aceptar en la app la política `2026-11-03` (tiene aceptada la `2026-11-01`) y poner su `.env` en `%APPDATA%\soundsync\.env` (hoy no existe ahí). Diseño y desviaciones: `docs/specs/2026-11-02-phase4-gui-design.md`.
 
 ### Riesgos abiertos (al cerrar la fase 3, 2026-11-02)
 
@@ -30,7 +30,6 @@ Fase 1 cerrada (GO 2026-10-30, `planV2.md` escrito 2026-11-01). **Fase 2 cerrada
 - Wails v3 lleva una semana estable (v3.0.0 2026-10-26, v3.1.0 2026-11-01, versión fija). Leer las notas antes de subirla.
 - Choque de marcas en el plan (Spotify vs YouTube): resuelto por vistas separadas, pero ninguna cláusula lo cubre explícitamente; vale preguntar a Spotify antes de abrir el repo.
 - La GUI de Linux se compila contra Debian 13: otras distros no están probadas. Probada en WSLg/Xvfb; la VM Debian 13 del autor queda como prueba de escritorio real opcional.
-- `PRIVACY.md` no menciona la caché web de la app de escritorio (`<config>/webview`: su propia página y el idioma elegido). El README sí. Cambiar la política es decisión del autor (subiría `consent.Version` y todos aceptarían de nuevo).
 - El `.msi` no está firmado (SmartScreen, como el zip).
 
 **Siguiente trabajo:** prueba real T.10 con el autor; push de `phase4-gui` para correr la CI (job `gui` nuevo); luego D.3 (release GUI) y D.1 (repo público), ambos con OK del autor.
@@ -124,7 +123,7 @@ Fase 1 cerrada (GO 2026-10-30, `planV2.md` escrito 2026-11-01). **Fase 2 cerrada
 | T.7 | Manual: collab Spotify → playlist YT propia | todo | Sin playlists colaborativas en la cuenta del autor (0 de 40) |
 | T.8 | Manual: mismo título sin marker → prompt | done | Cubierto por la prueba real de adopción de 2.1 (2026-11-01) |
 | T.9 | Manual: quota tope → stop + reporte | done | 2026-11-01 real, sesión nueva: `--max-searches 0` → 0 búsquedas, 1 track espera, extras no juzgados (el video de Queen no se borró). Con `--lang en`; luego `--lang es` en el mismo shell → 1 búsqueda, sincronizada |
-| T.10 | Real: GUI con cuentas reales (Windows y Debian) | todo | Necesita al autor: aceptar la política `2026-11-02` en la app y su `.env` en `%APPDATA%\soundsync`. Plan: login real (OAuth terminado en Chrome), elegir "Soundsync test", plan, escribir, reporte, Desconectar, cerrar (revoca) |
+| T.10 | Real: GUI con cuentas reales (Windows y Debian) | todo | Necesita al autor: aceptar la política `2026-11-03` en la app y su `.env` en `%APPDATA%\soundsync`. Plan: login real (OAuth terminado en Chrome), elegir "Soundsync test", plan, escribir, reporte, Desconectar, cerrar (revoca) |
 | T.11 | Unit + integración GUI (Go) | done | 2026-11-02: `internal/{session,copier,report,update,consent,desktop}` + `config`; `-race` en WSL Debian 13; 4 mutaciones a salvaguardas detectadas |
 | T.12 | E2E GUI (Playwright, kit `~/.e2e`) | done | 2026-11-02: `gui/frontend/e2e`, cada test levanta su propia build e2e (server mode + fakes) con un escenario. 24/24 (claro, oscuro, ventana mínima) y 48/48 con `--repeat-each=2`. Solo local (CI no tiene el kit) |
 | T.13 | Empaque real | done | 2026-11-02: `.msi` en Windows 11 sin admin (17/17), `.deb` en WSL Debian 13 (instala, `-version`, GUI en Xvfb, purga) |
@@ -146,6 +145,7 @@ _Ninguno registrado._
 
 | Fecha | Qué |
 |---|---|
+| 2026-11-02 | `PRIVACY.md` cubre la app de escritorio (caché `webview`, escribir solo con "Escribir en YouTube", Desconectar revoca, aviso de versión al abrir la app); versión → `2026-11-03` (decisión del autor). Un test exige que `consent.Version` y `PRIVACY.md` digan lo mismo. |
 | 2026-11-02 | **Fase 4 (GUI)** en `phase4-gui`. 4.1: Wails v3.1.0 elegido tras spike en Windows + Debian 13. Plan aprobado por el autor (design doc `docs/specs/2026-11-02-phase4-gui-design.md`). Refactor del motor a `internal/` sin cambiar la CLI; backend `internal/desktop`; cáscara `gui/`; frontend React. Investigación de cumplimiento nueva (Branding de YouTube, Compliance Tips, Software Principles) en `compliance.md`. Empaque con wixl elegido tras prueba real (sin WiX ni EULA). Tests: Go con `-race`, 24 E2E, `.msi` y `.deb` reales. Falta T.10 con el autor. |
 | 2026-11-02 | **Fase 3 cerrada** (decisión del autor). Las playlists "Soundsync test" se quedan para pruebas. Sigue la fase 4. |
 | 2026-11-02 | `v0.1.0` publicado (D.2 done). `privacyPolicyVersion` → `2026-11-02` (decisión del autor). Zip del release probado en Windows: checksum, `.env` desde `%APPDATA%`, login real Spotify + YouTube, Defender limpio, SmartScreen ("Unknown publisher" → "Run anyway") igual a lo que dice el README. `.deb` probado en una VM con Debian 13: `apt install`, `.env` desde `~/.config`, aviso de privacidad, login con `xdg-open` en Spotify + YouTube. |
