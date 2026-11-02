@@ -9,6 +9,8 @@ Estado: `todo` | `doing` | `done` | `blocked`
 
 Fase 1 cerrada (GO 2026-10-30, `planV2.md` escrito 2026-11-01). **Fase 2 cerrada 2026-11-01** (autor): todos los ítems done; pruebas unit, integración, CI y reales en verde (solo T.7 sigue todo: sin playlists colaborativas). **Fase 3 cerrada 2026-11-02** (autor): todos los ítems done; `v0.1.0` publicado (D.2) y probado como usuario nuevo en Windows 11 y en Debian 13. Ya se puede re-correr `youtube add` sobre "The Way" y "Covers" (2.17 conserva la corrección manual; verificado en real 2026-11-01). Playlists privadas de prueba **"Soundsync test"** (Spotify: Bohemian Rhapsody, Billie Jean, Take on Me; YouTube: igual): el autor las conserva para pruebas futuras (decisión 2026-11-02). Repo en `github.com/CharlyCeballos/soundsync` (aún PRIVATE, ver D.1).
 
+**Fase 4 (GUI) en la rama `phase4-gui`, 2026-11-02:** 4.1–4.6 hechos y probados con fakes, E2E, ventana real en Windows (sin cuentas), `.msi` real en Windows 11 y `.deb` en Debian 13 (WSL). Falta la prueba con cuentas reales (T.10), que necesita al autor: aceptar en la app la política `2026-11-02` (tiene aceptada la `2026-11-01`) y poner su `.env` en `%APPDATA%\soundsync\.env` (hoy no existe ahí). Diseño y desviaciones: `docs/specs/2026-11-02-phase4-gui-design.md`.
+
 ### Riesgos abiertos (al cerrar la fase 3, 2026-11-02)
 
 **No probado (riesgo abierto):**
@@ -23,7 +25,15 @@ Fase 1 cerrada (GO 2026-10-30, `planV2.md` escrito 2026-11-01). **Fase 2 cerrada
 - GitHub está migrando `ubuntu-latest` a Ubuntu 26 (aviso en el CI del 2026-11-01). En el próximo release, confirmar que `dpkg-deb`, `zip` y el smoke test siguen verdes.
 - El aviso de versión puede retrasar hasta 2 s el arranque de `shell` con red lenta.
 
-**Siguiente trabajo:** fase 4. Empieza con 4.1: evaluar Wails v3 vs v2 en Windows y Debian.
+**Riesgos de la fase 4 (2026-11-02):**
+
+- Wails v3 lleva una semana estable (v3.0.0 2026-10-26, v3.1.0 2026-11-01, versión fija). Leer las notas antes de subirla.
+- Choque de marcas en el plan (Spotify vs YouTube): resuelto por vistas separadas, pero ninguna cláusula lo cubre explícitamente; vale preguntar a Spotify antes de abrir el repo.
+- La GUI de Linux se compila contra Debian 13: otras distros no están probadas. Probada en WSLg/Xvfb; la VM Debian 13 del autor queda como prueba de escritorio real opcional.
+- `PRIVACY.md` no menciona la caché web de la app de escritorio (`<config>/webview`: su propia página y el idioma elegido). El README sí. Cambiar la política es decisión del autor (subiría `consent.Version` y todos aceptarían de nuevo).
+- El `.msi` no está firmado (SmartScreen, como el zip).
+
+**Siguiente trabajo:** prueba real T.10 con el autor; push de `phase4-gui` para correr la CI (job `gui` nuevo); luego D.3 (release GUI) y D.1 (repo público), ambos con OK del autor.
 
 ### Para retomar
 
@@ -94,12 +104,12 @@ Fase 1 cerrada (GO 2026-10-30, `planV2.md` escrito 2026-11-01). **Fase 2 cerrada
 
 | ID | Item | Estado | Notas |
 |---|---|---|---|
-| 4.1 | Evaluar Wails v3 vs v2 en Win + Debian | todo | Core intacto; Plan B = v2 |
-| 4.2 | Shell React: Connect Spotify / Google | todo | |
-| 4.3 | Select playlists + progreso + reporte | todo | i18n es-MX / en. Sin reproducción ni previews (Policy III.5). Design Guidelines: vista de selección Spotify con logo oficial (full ≥70px, ícono ≥21px, zona libre ½ ícono, verde solo sobre negro/blanco); link “OPEN SPOTIFY” por playlist/track; metadata sin alterar, truncar OK si se ve completa (tooltip); sin cover art en v1. Contenido Spotify y YouTube en vistas separadas, nunca lado a lado con logos |
-| 4.4 | Prompt combinar mismo nombre | todo | |
-| 4.5 | Download reporte on demand | todo | |
-| 4.6 | `.msi` + `.deb` con WebView2 / webkitgtk | todo | Sin auto-update |
+| 4.1 | Evaluar Wails v3 vs v2 en Win + Debian | done | 2026-11-02. **v3 estable** (v3.0.0 2026-10-26; se usa v3.1.0 fijo). Spike: Windows 11 (WebView2, CGO=0, 11.4 MB, 3 módulos Go) y Debian 13 en WSLg (GTK4 + `libwebkitgtk-6.0`, 2 módulos), puente JS↔Go en ambos sentidos. v2 descartado: pide `webkit2gtk-4.0`, que Debian 13 no trae. Probado también: módulo anidado `gui/` importando `internal/` y bindings TS de un servicio de otro paquete |
+| 4.2 | Shell React: Connect Spotify / Google | done | 2026-11-02. Motor extraído de `cmd` sin cambiar la salida de la CLI: `internal/session`, `copier`, `report`, `consent`, `update`, `config.ReadFile` (relee el `.env`), `fakeapi`. Backend sin Wails `internal/desktop` (Settings/Accounts/Copy + Host). Cáscara `gui/` (módulo propio): una instancia, revoca Google al cerrar, chequeo de WebView2 con MessageBox, `-version`. Puertas: configuración (crea el `.env` y revisa sola al volver) y consentimiento. Login con link de respaldo y Cancelar; **Desconectar** revoca al instante |
+| 4.3 | Select playlists + progreso + reporte | done | 2026-11-02. Asistente de 3 pasos, es-MX/en tipado. Vista Spotify: logo oficial monocromo con zona libre, páginas de 20, `OPEN SPOTIFY` por playlist/canción y al final de cada página, seguidas deshabilitadas con motivo, nombres truncados con tooltip. Vista YouTube: "Developed with YouTube" enlazado al canal. El plan cambia de vista completa (nunca marcas juntas); resumen exacto + costo y nada se escribe hasta "Escribir en YouTube". Progreso por playlist, **Detener** (`Copy.Stop`), resumen como la CLI con link a YouTube Music. CSP estricta; los enlaces solo salen por la allowlist del backend |
+| 4.4 | Prompt combinar mismo nombre | done | 2026-11-02. Pregunta en línea (no modal) por playlist: usar una de las homónimas (privacidad, videos, link) o crear nueva; buscar queda deshabilitado hasta responder. Solo viaja el ID (`Destination.Adopt` valida). El resultado explica que la adoptada conservó sus videos |
+| 4.5 | Download reporte on demand | done | 2026-11-02. CSV o JSON con diálogo nativo, nombre con fecha y hora, nunca sobrescribe; disponible también tras un paro. Mismo modelo `report.Rows` que `--report` |
+| 4.6 | `.msi` + `.deb` con WebView2 / webkitgtk | done | 2026-11-02. `gui/build/package.sh` en Debian 13: `soundsync-gui_<v>_amd64.deb` (`Depends: libgtk-4-1, libwebkitgtk-6.0-4`) y `soundsync-gui_<v>_windows_amd64.msi` con **wixl** (LGPL, sin EULA), por usuario, sin admin. Probados en real: `.msi` 17/17 en Windows 11 (instala, actualiza, rechaza bajar, desinstala limpio); `.deb` instala, corre y se purga en WSL Debian 13. CI: job `gui` en `debian:trixie` fijado por digest; release: mismo script vía `docker run`. Sin auto-update |
 
 ## Pruebas (acumulado)
 
@@ -114,6 +124,10 @@ Fase 1 cerrada (GO 2026-10-30, `planV2.md` escrito 2026-11-01). **Fase 2 cerrada
 | T.7 | Manual: collab Spotify → playlist YT propia | todo | Sin playlists colaborativas en la cuenta del autor (0 de 40) |
 | T.8 | Manual: mismo título sin marker → prompt | done | Cubierto por la prueba real de adopción de 2.1 (2026-11-01) |
 | T.9 | Manual: quota tope → stop + reporte | done | 2026-11-01 real, sesión nueva: `--max-searches 0` → 0 búsquedas, 1 track espera, extras no juzgados (el video de Queen no se borró). Con `--lang en`; luego `--lang es` en el mismo shell → 1 búsqueda, sincronizada |
+| T.10 | Real: GUI con cuentas reales (Windows y Debian) | todo | Necesita al autor: aceptar la política `2026-11-02` en la app y su `.env` en `%APPDATA%\soundsync`. Plan: login real (OAuth terminado en Chrome), elegir "Soundsync test", plan, escribir, reporte, Desconectar, cerrar (revoca) |
+| T.11 | Unit + integración GUI (Go) | done | 2026-11-02: `internal/{session,copier,report,update,consent,desktop}` + `config`; `-race` en WSL Debian 13; 4 mutaciones a salvaguardas detectadas |
+| T.12 | E2E GUI (Playwright, kit `~/.e2e`) | done | 2026-11-02: `gui/frontend/e2e`, cada test levanta su propia build e2e (server mode + fakes) con un escenario. 24/24 (claro, oscuro, ventana mínima) y 48/48 con `--repeat-each=2`. Solo local (CI no tiene el kit) |
+| T.13 | Empaque real | done | 2026-11-02: `.msi` en Windows 11 sin admin (17/17), `.deb` en WSL Debian 13 (instala, `-version`, GUI en Xvfb, purga) |
 
 ## Despliegue / releases
 
@@ -121,7 +135,7 @@ Fase 1 cerrada (GO 2026-10-30, `planV2.md` escrito 2026-11-01). **Fase 2 cerrada
 |---|---|---|---|
 | D.1 | Repo GitHub público | doing | 2026-11-01: `github.com/CharlyCeballos/soundsync` creado y pusheado, module path actualizado, `.gitattributes` LF. Visibilidad **PRIVATE**: decisión autor 2026-11-01, **público después de la fase 4**. Historial revisado 2026-11-01: las credenciales reales del `.env` no aparecen en ningún commit (solo fixtures de test) |
 | D.2 | Release CLI Windows + deb | done | 2026-11-01: `v0.1.0` creado como **borrador** por el workflow de 3.1/3.2. Publicado por el autor el 2026-11-02; mientras el repo sea privado (D.1), solo él lo ve |
-| D.3 | Release GUI msi + deb | todo | Tras fase 4 |
+| D.3 | Release GUI msi + deb | todo | Listo para el próximo tag: `release.yml` ya agrega el `.msi` y el `.deb` de la GUI al borrador. Tag y publicación con OK del autor |
 | D.4 | Privacy policy URL (`PRIVACY.md` en repo público) | doing | 2026-11-01: `PRIVACY.md` escrito (usa YouTube API Services, qué lee/escribe/guarda, revocar, contacto) y enlazado desde README y el aviso de primer uso. El link solo funciona para terceros cuando el repo sea público (D.1) |
 
 ## Bloqueos
@@ -132,6 +146,7 @@ _Ninguno registrado._
 
 | Fecha | Qué |
 |---|---|
+| 2026-11-02 | **Fase 4 (GUI)** en `phase4-gui`. 4.1: Wails v3.1.0 elegido tras spike en Windows + Debian 13. Plan aprobado por el autor (design doc `docs/specs/2026-11-02-phase4-gui-design.md`). Refactor del motor a `internal/` sin cambiar la CLI; backend `internal/desktop`; cáscara `gui/`; frontend React. Investigación de cumplimiento nueva (Branding de YouTube, Compliance Tips, Software Principles) en `compliance.md`. Empaque con wixl elegido tras prueba real (sin WiX ni EULA). Tests: Go con `-race`, 24 E2E, `.msi` y `.deb` reales. Falta T.10 con el autor. |
 | 2026-11-02 | **Fase 3 cerrada** (decisión del autor). Las playlists "Soundsync test" se quedan para pruebas. Sigue la fase 4. |
 | 2026-11-02 | `v0.1.0` publicado (D.2 done). `privacyPolicyVersion` → `2026-11-02` (decisión del autor). Zip del release probado en Windows: checksum, `.env` desde `%APPDATA%`, login real Spotify + YouTube, Defender limpio, SmartScreen ("Unknown publisher" → "Run anyway") igual a lo que dice el README. `.deb` probado en una VM con Debian 13: `apt install`, `.env` desde `~/.config`, aviso de privacidad, login con `xdg-open` en Spotify + YouTube. |
 | 2026-11-01 | Fase 3: tag `v0.1.0` → workflow de release verde al 1er intento (vet, test, build, zip, deb + smoke, checksums, borrador). CI de main verde. 3.1 y 3.2 done. |

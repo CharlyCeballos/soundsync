@@ -12,8 +12,14 @@ Not legal advice.
 | Spotify quota modes + "February 2026 Dev Mode changes" | page as of 2026-10-26 |
 | YouTube API Services Terms of Service | last updated 2026-09-14 |
 | YouTube API Services Developer Policies | last updated 2026-10-15 |
+| YouTube API Services Branding Guidelines | last updated 2025-08-20 (reviewed 2026-11-02, phase 4) |
+| Spotify Design & Branding Guidelines | re-checked 2026-11-02; logo kit files dated 2024-08-19 |
+| Spotify Compliance Tips | page as of 2026-11-02 |
+| Google Software Principles | page as of 2026-11-02 (part of the YouTube API ToS, §2.1) |
 
-Not reviewed yet: Spotify Compliance Tips, YouTube Branding Guidelines, EU User Consent Policy, Google Software Principles.
+On 2026-11-02 the YouTube ToS, Developer Policies and RMF pages showed "Last updated 2026-11-01", but the revision history's newest entry is still 2026-06-01: a re-render, not a content change.
+
+Not reviewed yet: EU User Consent Policy.
 
 ## Verdict
 
@@ -54,11 +60,24 @@ Allowed. Spotify Developer Policy III.9 bans transferring data to another servic
 ### Design Guidelines (GUI, phase 4)
 
 - Attribute with the official logo: full logo ≥70px, icon alone ≥21px (only if no room). Exclusion zone = ½ icon height. Green logo only on black/white; monochrome otherwise. Never modify it.
+- Spotify metadata "must always be accompanied by the Spotify brand" and "must always link back" (#attribution, #using-spotify-metadata).
 - Link back on every playlist/track; text `OPEN SPOTIFY` (or `GET SPOTIFY FREE` if not installed).
 - Metadata exactly as provided; truncation OK only if the full text is reachable (tooltip). Layout fits playlist 25 / artist 18 / track 23 chars.
+- "Never show more than 20 items in a content set", with a link to the Spotify app at the end (#how-to-display-provided-content).
 - Cover art: untouched, no crop, no overlays, rounded 4px (small/medium) or 8px (large). Soundsync v1 shows no cover art.
 - No co-branding: never show Spotify and YouTube logos together; Spotify content never seated next to content from similar services → Spotify selection view and YouTube result view are separate.
-- Soundsync's own logo must not look like Spotify's (no green circle with waves).
+- Soundsync's own logo must not look like Spotify's (no green, no circle, no waves).
+
+How the GUI does it (2026-11-02):
+
+- Official 2024 full logo, black on the light theme and white on the dark one (always allowed), 28px tall (≈100px wide) with a clear space of ≥14px.
+- Library: pages of 20, `OPEN SPOTIFY` on every playlist and after every page; names truncated with the full name as tooltip; followed playlists shown disabled with the reason.
+- The plan's song list (Spotify view) has its own pages of 20 and `OPEN SPOTIFY` per song.
+
+### Compliance Tips (developer.spotify.com/compliance-tips)
+
+- Request only needed scopes; do not store what can be fetched; deleting data should be one easy button; explain data use (#focus-on-the-user) → GUI: **Disconnect** per account, nothing stored, consent screen and privacy policy.
+- Disallowed: "Synchronization: Syncing sound recordings accessed via the Spotify Platform with other recordings, lyrics, or video" (#disallowed-use-cases). Soundsync reads playlist metadata, never sound recordings → see accepted risks.
 
 ## YouTube
 
@@ -83,6 +102,29 @@ Allowed. Spotify Developer Policy III.9 bans transferring data to another servic
 | Projects idle 90 days may be curtailed | Policies III.D.4 | Expect re-enabling after long idle |
 | No public statements implying YouTube endorsement | ToS §13 | README wording |
 
+### Branding Guidelines (GUI, phase 4)
+
+| Rule | Source | Impact |
+|---|---|---|
+| Use the "Developed with YouTube" logo when the app would be useless without YouTube | Branding Guidelines, "Developed with YouTube logo" | Soundsync's output is YouTube playlists → this mark, not the YouTube logo |
+| Feature it on any page where the YouTube API has a presence, next to the YouTube content, never the most prominent element | "Logo Sizing and Placement" | Every YouTube view (step 2, step 3) shows it above the content, smaller than the heading |
+| Logos must link to YouTube content | "Requirements" | It links to the user's channel |
+| Do not change the YouTube logo's colors; the "Developed with YouTube" mark may be one solid color | "Requirements" | Official dark-text / light-text files per theme, only transparent margins trimmed |
+| Never combine "YouTube"/"YT" with the app's name; no YouTube marks in names or icons | "Naming" | "Soundsync"; own icon (indigo list + chevron, no play triangle) |
+| Each page or feature that shows YouTube content must make YouTube clear as the source; with mixed sources, attribute each YouTube item | Policies III.F.2.a–b | The plan never mixes sources in one view (see accepted risks); every video row links to youtube.com |
+
+### GUI rules from the Developer Policies
+
+- III.A.1–A.2: links to the privacy policy, YouTube ToS, Google Privacy Policy and the revocation page are in the footer of every screen and in the consent screen.
+- III.C.2, III.E.3.d–e: the plan lists each change (create, use and describe, add N, remove M) with its quota cost and the channel; nothing is written until **Write to YouTube**.
+- III.D.2.c: **Disconnect** revokes Google's token at once; quitting the app revokes it too.
+
+### Google Software Principles (YouTube API ToS §2.1)
+
+- Upfront disclosure → the consent screen says what Soundsync reads and writes before any login.
+- Simple removal → per-user `.msi` uninstalls from Settings → Apps with nothing left in the install folder, the Start menu or the registry (tested 2026-11-02); `apt purge` removes the `.deb`. The user's own settings folder (`.env`, consent, webview cache) stays, as user data, and the README says how to delete it.
+- No bundling, no self-reactivation, no silent settings changes: none apply.
+
 ### Google OAuth facts
 
 - Consent screen in **Testing**: max 100 test users; refresh tokens expire after ~7 days.
@@ -93,3 +135,5 @@ Allowed. Spotify Developer Policy III.9 bans transferring data to another servic
 
 - The CSV/JSON report pairs a Spotify track with a YouTube video. That pairing is the transfer allowed by Spotify Policy III.9; keep it plain text, no logos or thumbnails, saved only when the user asks.
 - “Spotify → YouTube” as a description pairs both brands. Keep it textual, never with logos.
+- **Match results (GUI).** YouTube wants each video attributed when sources mix (III.F.2.b); Spotify wants its logo next to any of its metadata and never seated next to a similar service. No clause resolves showing a song beside its video. Soundsync never does: the plan has a YouTube view (videos, the "Developed with YouTube" mark, the write button) and a Spotify view (songs, the Spotify logo, `OPEN SPOTIFY`) that swap the whole region, linked only by the song's position number. Worth asking Spotify developer support before a wider release.
+- **Compliance Tips "Synchronization".** It bans syncing *sound recordings* with other recordings or video. Soundsync never accesses recordings, only playlist metadata, which Policy III.9 allows to transfer; the pairing lives in plain text (plan and report).

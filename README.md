@@ -2,7 +2,7 @@
 
 [Español](README.es.md)
 
-Soundsync copies your playlists from **Spotify to YouTube** (YouTube playlists, so they show up in YouTube Music too). It is a command-line program that runs on your computer: no server, no account, nothing from Spotify or YouTube saved on disk.
+Soundsync copies your playlists from **Spotify to YouTube** (YouTube playlists, so they show up in YouTube Music too). It runs on your computer, as a desktop app (Windows and Debian) or as a command-line program: no server, no account, nothing from Spotify or YouTube saved on disk.
 
 Run it again whenever you like: it adds what is new, removes what you took out of the Spotify playlist, and leaves alone what is already there, including videos you replaced by hand.
 
@@ -22,6 +22,20 @@ Step-by-step guide: [docs/setup.md](docs/setup.md).
 
 Download the latest release from the [Releases page](https://github.com/CharlyCeballos/soundsync/releases). `SHA256SUMS` lists the checksum of every file.
 
+### Desktop app
+
+**Windows 10/11 (64-bit):** run `soundsync-gui_<version>_windows_amd64.msi`. It installs for your user only (no administrator rights) and adds **Soundsync** to the Start menu; a newer `.msi` replaces the old version. The installer is not code-signed, so SmartScreen may warn: choose **More info → Run anyway**. Soundsync needs the Microsoft Edge WebView2 Runtime, which Windows 11 already includes; if it is missing, Soundsync says so and offers Microsoft's download page. Uninstall it from **Settings → Apps**; your settings folder `%APPDATA%\soundsync` (your `.env`, consent and the window's cache) stays until you delete it.
+
+**Debian 13 (64-bit):**
+
+```bash
+sudo apt install ./soundsync-gui_<version>_amd64.deb
+```
+
+It appears as **Soundsync** in the applications menu and pulls in GTK 4 and WebKitGTK 6.0. It is built for Debian 13; other distributions are not tested. `sudo apt remove soundsync-gui` uninstalls it; `~/.config/soundsync` keeps your settings until you delete it.
+
+### Command line
+
 **Windows (64-bit):** unzip `soundsync_<version>_windows_amd64.zip` into a folder of your choice and run `soundsync.exe` from a terminal (PowerShell or Command Prompt) in that folder. The program is not code-signed, so Windows SmartScreen may warn the first time: choose **More info → Run anyway**.
 
 **Debian, Ubuntu and derivatives (64-bit):**
@@ -30,7 +44,7 @@ Download the latest release from the [Releases page](https://github.com/CharlyCe
 sudo apt install ./soundsync_<version>_amd64.deb
 ```
 
-Updates: when you open `soundsync shell`, it tells you if a newer version is out and where to get it. It never downloads or installs anything by itself.
+Updates: the desktop app, and `soundsync shell` when you open it, tell you if a newer version is out and where to get it. Neither downloads or installs anything by itself.
 
 ## Configure
 
@@ -41,7 +55,7 @@ Soundsync looks for `.env` in the current folder first, then in:
 - Windows: `%APPDATA%\soundsync\.env`
 - Linux: `~/.config/soundsync/.env`
 
-`--env-file <path>` uses any other file. Check it with:
+`--env-file <path>` uses any other file. The desktop app reads only the file in that folder: its first screen shows which values are missing (never the values themselves) and can create the file for you, ready to fill in. Check it from the command line with:
 
 ```bash
 soundsync config check   # says which file it read; never prints the values
@@ -49,7 +63,17 @@ soundsync config check   # says which file it read; never prints the values
 
 Never share or commit your `.env`.
 
-## Use
+## Use the desktop app
+
+Open **Soundsync**. The first time, it asks you to accept its privacy policy; then three steps:
+
+1. **Choose playlists** — connect Spotify (your browser opens to log in) and tick the playlists to copy.
+2. **Review on YouTube** — connect your YouTube channel, decide what to do when your channel already has a playlist with the same name, and let Soundsync look for the songs. You see every change and its quota cost; nothing is written until you press **Write to YouTube**.
+3. **Done** — what changed in each playlist, a link to open it in YouTube Music, and a report you can download as CSV or JSON.
+
+**Disconnect** next to each account ends that session; closing the app revokes Google access.
+
+## Use the command line
 
 ```bash
 soundsync shell
@@ -77,7 +101,7 @@ Messages follow your system language when it is Spanish or English (Spanish othe
 
 ## Privacy
 
-Soundsync asks you to accept its [privacy policy](PRIVACY.md) once, before the first login. Login tokens live in memory only, and Google access is revoked when Soundsync exits. Nothing from Spotify or YouTube is stored on your computer.
+Soundsync asks you to accept its [privacy policy](PRIVACY.md) once, before the first login. Login tokens live in memory only, and Google access is revoked when Soundsync exits. Nothing from Spotify or YouTube is stored on your computer. The desktop app also keeps its window's web cache (its own page and the language you picked) in the same settings folder, under `webview`.
 
 ## OAuth scopes
 
@@ -99,6 +123,8 @@ Requires Go 1.26 or newer.
 go test ./...
 go run ./cmd/soundsync shell
 ```
+
+The desktop app lives in `gui/` (Wails v3 + React; Node 20.19+ and `wails3` too): see [gui/README.md](gui/README.md).
 
 Releases are built by GitHub Actions from a `vX.Y.Z` tag (`.github/workflows/release.yml`). Platform rules that shape the app: [docs/compliance.md](docs/compliance.md). Progress and open items: [docs/todo.md](docs/todo.md).
 
