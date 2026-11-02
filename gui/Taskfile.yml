@@ -1,0 +1,89 @@
+# Developer tasks for the GUI (run with `wails3 task <name>`, or `task`).
+# Release packaging lives in build/package.sh, which CI runs as is.
+version: '3'
+
+vars:
+  APP_NAME: soundsync-gui
+  BIN_DIR: bin
+  VERSION: '{{.VERSION | default "dev"}}'
+  VITE_PORT: '{{.WAILS_VITE_PORT | default 9245}}'
+  GOOS: '{{.GOOS | default OS}}'
+  # DEV=true keeps the console and debug symbols, for `wails3 dev`.
+  TAGS: '{{if eq .DEV "true"}}{{else}}production{{end}}'
+  LDFLAGS: '-X main.version={{.VERSION}}{{if ne .DEV "true"}} -w -s{{end}}'
+
+tasks:
+  frontend:deps:
+    dir: frontend
+    sources: [package.json, package-lock.json]
+    generates: [node_modules/.package-lock.json]
+    cmds:
+      - npm ci
+
+  bindings:
+    summary: Generates the TypeScript bindings of the Go services
+    cmds:
+      - wails3 generate bindings -clean=true -ts -i -f '-tags {{.TAGS}}'
+
+  frontend:build:
+    deps: [frontend:deps, bindings]
+    dir: frontend
+    cmds:
+      - npm run {{if eq .DEV "true"}}build:dev{{else}}build{{end}}
+
+  icons:
+    summary: Regenerates the Windows icon from build/appicon.png
+    cmds:
+      # The macOS bundle is unused but always written: send it to a scratch file.
+      - wails3 generate icons -input build/appicon.png -windowsfilename build/windows/icon.ico -macfilename {{.BIN_DIR}}/unused.icns
+
+  build:windows:
+    deps: [frontend:build]
+    cmds:
+      - wails3 generate syso -arch amd64 -icon build/windows/icon.ico -manifest build/windows/wails.exe.manifest -info build/windows/info.json -out wails_windows_amd64.syso
+      - defer: rm -f wails_windows_amd64.syso
+      - go build -tags "{{.TAGS}}" -trimpath -buildvcs=false -ldflags "{{.LDFLAGS}}{{if ne .DEV "true"}} -H windowsgui{{end}}" -o {{.BIN_DIR}}/{{.APP_NAME}}.exe
+    env:
+      GOOS: windows
+      GOARCH: amd64
+      CGO_ENABLED: '0'
+
+  build:linux:
+    deps: [frontend:build]
+    cmds:
+      - go build -tags "{{.TAGS}}" -trimpath -buildvcs=false -ldflags "{{.LDFLAGS}}" -o {{.BIN_DIR}}/{{.APP_NAME}}
+    env:
+      GOOS: linux
+      CGO_ENABLED: '1'
+
+  build:
+    summary: Builds the GUI for this OS (VERSION=v1.2.3 to stamp a version)
+    cmds:
+      - task: build:{{.GOOS}}
+
+  run:
+    deps: [build]
+    cmds:
+      - '{{.BIN_DIR}}/{{.APP_NAME}}{{exeExt}}'
+
+  run:dev:
+    internal: true
+    cmds:
+      - '{{.BIN_DIR}}/{{.APP_NAME}}{{exeExt}}'
+
+  dev:frontend:
+    deps: [frontend:deps]
+    dir: frontend
+    cmds:
+      - npm run dev -- --port {{.VITE_PORT}} --strictPort
+
+  dev:
+    summary: Live-reloading window over the Vite dev server
+    cmds:
+      - wails3 dev -config ./build/config.yml -port {{.VITE_PORT}}
+
+  build:e2e:
+    summary: Builds the server-mode binary with fake APIs for the Playwright tests
+    deps: [frontend:build]
+    cmds:
+      - go build -tags "server,e2e" -buildvcs=false -o {{.BIN_DIR}}/{{.APP_NAME}}-e2e{{exeExt}}

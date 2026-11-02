@@ -1,0 +1,17 @@
+{
+	"fixed": {
+		"file_version": "0.0.0",
+		"product_version": "0.0.0"
+	},
+	"info": {
+		"0409": {
+			"FileVersion": "0.0.0",
+			"ProductVersion": "0.0.0",
+			"CompanyName": "Carlos Ceballos",
+			"FileDescription": "Copy your Spotify playlists to YouTube",
+			"LegalCopyright": "(c) 2026 Carlos Ceballos",
+			"ProductName": "Soundsync",
+			"Comments": "Soundsync"
+		}
+	}
+}

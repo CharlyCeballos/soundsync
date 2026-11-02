@@ -107,9 +107,6 @@ func New(host Host, opts Options) *App {
 	return &App{Settings: &Settings{st}, Accounts: &Accounts{st}, Copy: &Copy{st}, st: st}
 }
 
-// Services lists what the GUI shell binds to the frontend.
-func (a *App) Services() []any { return []any{a.Settings, a.Accounts, a.Copy} }
-
 // Shutdown stops the running step, waits for it a little, and revokes
 // Google's grant (YouTube API Policies III.D.2). Call it when the app quits.
 func (a *App) Shutdown() {
@@ -170,7 +167,8 @@ type state struct {
 	mu             sync.Mutex
 	busy           string
 	opDone         chan struct{}
-	policyAccepted bool // for this process, when the OS has no config folder
+	stopOp         context.CancelFunc // ends the running step early (Copy.Stop)
+	policyAccepted bool               // for this process, when the OS has no config folder
 
 	sp *session.Spotify
 	yt *session.YouTube
@@ -193,12 +191,12 @@ func (st *state) begin(ctx context.Context, step string) (context.Context, func(
 	opCtx, cancel := context.WithCancel(ctx)
 	stop := context.AfterFunc(st.base, cancel)
 	done := make(chan struct{})
-	st.busy, st.opDone = step, done
+	st.busy, st.opDone, st.stopOp = step, done, cancel
 	end := func() {
 		stop()
 		cancel()
 		st.mu.Lock()
-		st.busy, st.opDone = "", nil
+		st.busy, st.opDone, st.stopOp = "", nil, nil
 		st.mu.Unlock()
 		close(done)
 	}

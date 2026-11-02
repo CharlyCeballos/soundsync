@@ -165,7 +165,9 @@ func (c *Copy) Plan(ctx context.Context, req PlanRequest) (*RunView, error) {
 		return nil, err
 	}
 	st.mu.Lock()
-	if st.phase != phaseResolved {
+	// A stopped or reviewed plan can be planned again; after a write the
+	// channel changed, so the destinations must be resolved again.
+	if st.phase != phaseResolved && st.phase != phasePlanned {
 		st.mu.Unlock()
 		return nil, ErrResolveFirst
 	}
@@ -179,6 +181,10 @@ func (c *Copy) Plan(ctx context.Context, req PlanRequest) (*RunView, error) {
 	}
 	jobs, err := copier.Prepare(ctx, sp.Client, dests, copier.Options{})
 	if err != nil {
+		if ctx.Err() != nil {
+			// Stopped while reading Spotify: nothing planned, plan again.
+			return &RunView{Phase: "planned", Channel: *channelOf(yt), Cancelled: true}, nil
+		}
 		return nil, err
 	}
 	observe := st.progress()
@@ -237,6 +243,18 @@ func (c *Copy) Write(ctx context.Context) (*RunView, error) {
 	changing, _ := copier.Changing(jobs)
 	copier.Write(ctx, yt, changing, privacy, st.progress())
 	return runView(ctx, yt, jobs, budget, "written"), nil
+}
+
+// Stop ends the running step early. A plan or a write then returns what it
+// did so far, marked as cancelled; what was written stays.
+func (c *Copy) Stop() {
+	st := c.st
+	st.mu.Lock()
+	stop := st.stopOp
+	st.mu.Unlock()
+	if stop != nil {
+		stop()
+	}
 }
 
 // progress forwards the engine's events to the frontend.

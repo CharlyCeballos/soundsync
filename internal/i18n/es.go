@@ -39,6 +39,9 @@ var es = map[string]string{
 	// internal/copier
 	"that playlist is not one of the playlists offered for this Spotify playlist": "esa playlist no es una de las que se ofrecieron para esta playlist de Spotify",
 
+	// gui (Windows without WebView2)
+	"Soundsync needs the Microsoft Edge WebView2 Runtime, which is not installed on this computer.\n\nOpen Microsoft's download page now? After installing it, open Soundsync again.": "Soundsync necesita Microsoft Edge WebView2 Runtime, que no está instalado en esta computadora.\n\n¿Abrir ahora la página de descarga de Microsoft? Después de instalarlo, abre Soundsync de nuevo.",
+
 	// internal/desktop (GUI)
 	"Soundsync is still working on the previous step; wait for it to finish or stop it":           "Soundsync sigue trabajando en el paso anterior; espera a que termine o detenlo",
 	"this system has no folder for app settings, so Soundsync cannot find its configuration file": "este sistema no tiene carpeta para la configuración de apps, así que Soundsync no puede encontrar su archivo de configuración",

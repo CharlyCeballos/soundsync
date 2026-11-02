@@ -1,0 +1,31 @@
+# `wails3 dev` configuration: rebuild the Go side on change, serve the
+# frontend with Vite, run the window. Product details live in
+# build/windows/info.json (Windows) and build/linux/*.desktop (Linux).
+version: '3'
+
+dev_mode:
+  root_path: .
+  log_level: warn
+  debounce: 1000
+  ignore:
+    dir:
+      - .git
+      - node_modules
+      - frontend
+      - bin
+    file:
+      - .DS_Store
+      - .gitignore
+      - .gitkeep
+      - "*_test.go"
+    watched_extension:
+      - "*.go"
+    git_ignore: true
+  executes:
+    - cmd: wails3 task build DEV=true
+      type: blocking
+    - cmd: wails3 task dev:frontend
+      type: background
+    - cmd: wails3 task run:dev
+      type: primary
+      exit_policy: shutdown

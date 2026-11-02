@@ -186,6 +186,8 @@ func (st *state) policyOK() bool {
 // ends with "/", so open.spotify.com.evil.example or soundsync-evil never
 // match.
 var allowedLinks = []string{
+	"https://accounts.spotify.com/", // the login page, when the browser did not open by itself
+	"https://accounts.google.com/",
 	"https://open.spotify.com/",
 	"https://www.youtube.com/",
 	"https://music.youtube.com/",

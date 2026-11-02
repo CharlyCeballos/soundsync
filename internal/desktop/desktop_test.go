@@ -341,6 +341,27 @@ func TestOneStepAtATime(t *testing.T) {
 	}
 }
 
+func TestStopEndsTheRunningStep(t *testing.T) {
+	f := newFixture(t, fakeapi.NewChannel())
+	entered := make(chan struct{})
+	f.app.st.opts.LoginSpotify = func(ctx, base context.Context, cfg config.Config, ui session.UI) (*session.Spotify, error) {
+		close(entered)
+		<-ctx.Done()
+		return nil, ctx.Err()
+	}
+	errc := make(chan error, 1)
+	go func() {
+		_, err := f.app.Accounts.ConnectSpotify(t.Context())
+		errc <- err
+	}()
+	<-entered
+	f.app.Copy.Stop()
+	if err := <-errc; !errors.Is(err, context.Canceled) {
+		t.Fatalf("stopped step: err = %v", err)
+	}
+	f.app.Copy.Stop() // nothing running: a no-op
+}
+
 func TestCancelledPlanCannotBeWritten(t *testing.T) {
 	f := newFixture(t, fakeapi.NewChannel())
 	f.connect(t)
@@ -356,12 +377,22 @@ func TestCancelledPlanCannotBeWritten(t *testing.T) {
 	if _, err := f.app.Copy.Write(t.Context()); err == nil {
 		t.Error("an incomplete plan must not be written")
 	}
+	if plan, err := f.app.Copy.Plan(t.Context(), PlanRequest{Privacy: youtube.PrivacyPrivate}); err != nil || plan.Cancelled {
+		t.Fatalf("planning again after a stop: plan=%+v err=%v", plan, err)
+	}
+	if _, err := f.app.Copy.Write(t.Context()); err != nil {
+		t.Errorf("the complete plan writes: %v", err)
+	}
+	if _, err := f.app.Copy.Plan(t.Context(), PlanRequest{Privacy: youtube.PrivacyPrivate}); !errors.Is(err, ErrResolveFirst) {
+		t.Errorf("planning after a write needs a fresh resolve: err = %v", err)
+	}
 }
 
 func TestOpenURLAllowlist(t *testing.T) {
 	f := newFixture(t, fakeapi.NewChannel())
 	for link, ok := range map[string]bool{
 		"https://open.spotify.com/playlist/x":                              true,
+		"https://accounts.google.com/o/oauth2/auth?client_id=x":            true,
 		"https://music.youtube.com/playlist?list=PL1":                      true,
 		"https://github.com/CharlyCeballos/soundsync/blob/main/PRIVACY.md": true,
 		"http://open.spotify.com/playlist/x":                               false,
