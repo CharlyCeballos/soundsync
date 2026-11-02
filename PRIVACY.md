@@ -1,6 +1,6 @@
 # Soundsync privacy policy
 
-Version 2026-11-01. Soundsync asks you to accept this policy again whenever this version changes.
+Version 2026-11-02. Soundsync asks you to accept this policy again whenever this version changes.
 
 Soundsync is a free, open source program that runs on your own computer and copies your Spotify playlists to YouTube. There is no Soundsync server and no Soundsync account. The author never receives your data.
 

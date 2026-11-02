@@ -12,7 +12,7 @@ import (
 
 // privacyPolicyVersion matches the version line of PRIVACY.md. Changing it
 // makes everyone accept the policy again.
-const privacyPolicyVersion = "2026-11-01"
+const privacyPolicyVersion = "2026-11-02"
 
 const privacyNotice = `
 Before Soundsync connects to Spotify and YouTube, please read how it handles your data:
