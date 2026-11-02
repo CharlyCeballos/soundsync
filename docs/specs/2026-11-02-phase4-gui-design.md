@@ -315,7 +315,9 @@ Rama `phase4-gui`. Lo que cambió respecto al plan, y por qué:
 
 - Go raíz: 13 paquetes en verde, `-race` en WSL Debian 13; tests nuevos en `session`, `copier`, `report`, `update`, `consent`, `config` y `desktop`. Cuatro mutaciones a salvaguardas clave (escribir una vez, rechazar playlists ajenas, puerta de consentimiento, `Write` sin duplicar) fueron detectadas por los tests.
 - `gui/`: `go vet` en las variantes dev, production, e2e y `GOOS=windows`; test de la lógica de WebView2.
-- E2E (Playwright, kit global): 8 escenarios × 3 proyectos (claro, oscuro, ventana mínima) = 24 en verde, y 48 con `--repeat-each=2`.
+- E2E (Playwright, kit global): 9 escenarios × 3 proyectos (claro, oscuro, ventana mínima) = 27 en verde; con 8 escenarios, 48/48 con `--repeat-each=2` (sin tests inestables).
 - Ventana real en Windows (WebView2 por CDP): pinta, CSP activa, cero errores de consola, los enlaces no navegan la ventana, el cierre normal termina con código 0.
 - Debian 13 (WSL): `.deb` instala, `soundsync-gui -version` = `v0.2.1`, la GUI pinta en Xvfb, `desktop-file-validate` sin errores, `apt purge` limpio.
-- Pendiente con cuentas reales: necesita que el autor acepte la política 2026-11-02 en la app y ponga su `.env` en `%APPDATA%\soundsync` (ver `todo.md`).
+- CI del PR #1 (`phase4-gui` → `main`, borrador): verde al primer intento en los tres jobs, incluido `gui` en `debian:trixie`.
+- Cuentas reales en Windows (T.10): el autor aceptó la política `2026-11-03` en la app; ventana real manejada por CDP y OAuth terminado en Chrome. Biblioteca de 40 playlists (páginas de 20); "Soundsync test" al día sin búsquedas; "Acoustics" +11 videos escritos (550 unidades); reporte CSV por el diálogo nativo. **Encontró un bug**: al Desconectar Spotify salía "connect Spotify first" (el paso 1 veía la cuenta vieja con la lista vacía y pedía las playlists). Corregido olvidando la cuenta antes que la lista, con un E2E nuevo para los dos botones Desconectar.
+- No verificado: el `.deb` con cuentas reales en un escritorio Debian (solo WSL/Xvfb), y la revocación de Google al cerrar la app real (cubierta por tests con un revocador falso; es el mismo código que la CLI, probado en real en la fase 2).
