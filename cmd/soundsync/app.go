@@ -79,7 +79,7 @@ type youtubeSession struct {
 
 func newApp() *app {
 	stdin := bufio.NewReader(os.Stdin)
-	configDir := defaultConfigDir()
+	configDir := config.Dir()
 	return &app{
 		envFile:   defaultEnvFile(configDir),
 		configDir: configDir,
@@ -133,10 +133,11 @@ func (a *app) config() (config.Config, error) {
 	if a.cfg != nil {
 		return *a.cfg, nil
 	}
-	if _, err := config.LoadDotEnv(a.envFile); err != nil {
+	f, err := config.ReadFile(a.envFile)
+	if err != nil {
 		return config.Config{}, err
 	}
-	cfg, err := config.FromEnv(os.Getenv)
+	cfg, err := config.FromEnv(f.Getenv)
 	if err != nil {
 		return config.Config{}, fmt.Errorf(i18n.T("%w\nrun 'soundsync config check' for details"), err)
 	}
