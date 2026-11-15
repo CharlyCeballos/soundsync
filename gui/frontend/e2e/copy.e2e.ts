@@ -75,6 +75,31 @@ test("disconnecting goes back to a clean connect screen", async ({ page }) => {
   await expect(page.getByRole("alert")).toHaveCount(0);
 });
 
+// P.2: accounts, language and settings file from any step. Only the platform
+// whose mark is on screen is shown in full; the other one is plain text.
+test("the options panel never puts the two brands on screen together", async ({ page }) => {
+  await english(page);
+  const options = page.getByRole("button", { name: "Options" });
+  const panel = page.getByRole("complementary", { name: "Options" });
+
+  await options.click();
+  await expect(panel.getByText("YouTube · Not connected")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(panel).toBeHidden();
+
+  await chooseAndReview(page, ["Covers"]);
+  await options.click();
+  await expect(panel.locator(youtubeMark)).toHaveCount(1);
+  await expect(page.locator(spotifyLogo)).toHaveCount(0);
+  await expect(panel.getByText("Spotify · Connected")).toBeVisible();
+
+  await panel.getByRole("button", { name: "Disconnect Spotify" }).click();
+  await expect(page.getByRole("heading", { name: "Connect your Spotify account" })).toBeVisible();
+  await expect(panel.getByText("YouTube · Connected")).toBeVisible();
+  await expect(page.locator(youtubeMark)).toHaveCount(0);
+  await expect(page.getByRole("alert")).toHaveCount(0);
+});
+
 test("a second run finds everything up to date", async ({ page }) => {
   await english(page);
   await chooseAndReview(page, ["Covers"]);

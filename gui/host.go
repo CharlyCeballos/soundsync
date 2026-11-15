@@ -1,7 +1,10 @@
 package main
 
 import (
+	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/CharlyCeballos/soundsync/internal/desktop"
@@ -30,8 +33,20 @@ func (h *wailsHost) attach(app *application.App, window *application.WebviewWind
 func (h *wailsHost) Emit(event string, data any) { h.app.Event.Emit(event, data) }
 
 // OpenExternal uses the same opener as the CLI (xdg-open, rundll32): it
-// takes URLs and folders alike. The backend decides what may be opened.
-func (h *wailsHost) OpenExternal(target string) error { return oauth.OpenBrowser(target) }
+// takes URLs, folders and the .env alike. The backend decides what may be
+// opened. Windows has no app for .env files and would ask which one to
+// use, so files open in Notepad there.
+func (h *wailsHost) OpenExternal(target string) error {
+	if info, err := os.Stat(target); runtime.GOOS == "windows" && err == nil && info.Mode().IsRegular() {
+		cmd := exec.Command("notepad.exe", target)
+		if err := cmd.Start(); err != nil {
+			return err
+		}
+		go cmd.Wait()
+		return nil
+	}
+	return oauth.OpenBrowser(target)
+}
 
 // SaveFile offers the suggested name, filtered to its extension (Windows
 // then adds the extension when the user types a name without one).

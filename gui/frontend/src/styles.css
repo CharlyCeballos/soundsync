@@ -1,4 +1,4 @@
-/* Soundsync — one restrained product world: neutral surfaces, one indigo
+/* Soundsync — one restrained product world: neutral surfaces, one cobalt
    accent for actions and selection, semantic colors for state only. The
    platforms' brand colors (Spotify green, YouTube red) are never used. */
 
@@ -36,12 +36,12 @@
   --text-2: #565667;
   --text-3: #6e6e80;
 
-  --accent: #4f46e5;
-  --accent-strong: #4338ca;
+  --accent: #2955d3;
+  --accent-strong: #1a41be;
   --accent-text: #ffffff;
-  --accent-weak: #eef0ff;
-  --accent-weak-text: #3730a3;
-  --focus: #6366f1;
+  --accent-weak: #eaf2ff;
+  --accent-weak-text: #14359b;
+  --focus: #497cfd;
 
   --ok: #0f766e;
   --ok-weak: #e6f5f3;
@@ -52,6 +52,8 @@
 
   --shadow: 0 1px 2px rgb(16 16 24 / 0.06), 0 2px 8px rgb(16 16 24 / 0.04);
   --shadow-raised: 0 -1px 0 var(--line), 0 -6px 16px rgb(16 16 24 / 0.05);
+  --shadow-panel: -12px 0 32px -16px rgb(16 16 24 / 0.22);
+  --topbar-h: 56px;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -66,12 +68,12 @@
     --text-2: #aeaebf;
     --text-3: #9a9aad;
 
-    --accent: #8b85f8;
-    --accent-strong: #a19cfa;
-    --accent-text: #0f0e24;
-    --accent-weak: #25234a;
-    --accent-weak-text: #cbc8ff;
-    --focus: #a5a1fb;
+    --accent: #82a8fd;
+    --accent-strong: #99bcff;
+    --accent-text: #091123;
+    --accent-weak: #1d2842;
+    --accent-weak-text: #c4d8ff;
+    --focus: #8eb5ff;
 
     --ok: #4cc2b0;
     --ok-weak: #13302d;
@@ -82,6 +84,7 @@
 
     --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 12px rgb(0 0 0 / 0.25);
     --shadow-raised: 0 -1px 0 var(--line), 0 -6px 16px rgb(0 0 0 / 0.3);
+    --shadow-panel: -12px 0 32px -12px rgb(0 0 0 / 0.6);
   }
 }
 
@@ -140,7 +143,7 @@ a:hover, .link:hover { color: var(--accent-strong); text-decoration-thickness: 2
   display: flex;
   align-items: center;
   gap: var(--space-5);
-  height: 56px;
+  height: var(--topbar-h);
   padding: 0 var(--space-5);
   background: var(--surface);
   border-bottom: 1px solid var(--line);
@@ -172,13 +175,6 @@ a:hover, .link:hover { color: var(--accent-strong); text-decoration-thickness: 2
 button.step { cursor: pointer; }
 button.step:hover { background: var(--surface-2); color: var(--text); }
 
-.lang { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); padding: 2px; }
-.lang button {
-  border: 0; background: none; color: var(--text-2); font: 600 var(--fs-xs)/1 var(--font);
-  padding: 6px 9px; border-radius: 6px; cursor: pointer;
-}
-.lang button[aria-pressed="true"] { background: var(--surface-2); color: var(--text); }
-
 main { overflow: auto; scroll-behavior: smooth; }
 .page { max-width: 1040px; margin: 0 auto; padding: var(--space-6) var(--space-6) var(--space-7); }
 .page-head { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-5); }
@@ -193,6 +189,62 @@ main { overflow: auto; scroll-behavior: smooth; }
 .footer a { color: var(--text-2); }
 .footer a:hover { color: var(--text); }
 .footer .version { margin-left: auto; }
+
+/* ---------- Options panel ---------- */
+
+.options-toggle { color: var(--text-2); }
+.options-toggle:hover { color: var(--text); }
+.options-toggle svg { width: 18px; height: 18px; }
+.app:has(.options:popover-open) .options-toggle { background: var(--accent-weak); border-color: transparent; color: var(--accent-weak-text); }
+
+/* A popover in the top layer, pinned under the top bar on the right. It
+   slides in from the edge it belongs to and out again when it closes. */
+.options {
+  position: fixed; inset: var(--topbar-h) 0 0 auto; margin: 0;
+  width: min(380px, 100vw); height: auto; max-height: none;
+  padding: 0; border: 0; border-left: 1px solid var(--line);
+  background: var(--surface); color: var(--text);
+  box-shadow: var(--shadow-panel);
+  overflow-y: auto; overscroll-behavior: contain;
+  transform: translateX(100%);
+  transition: transform 220ms var(--ease), display 220ms allow-discrete, overlay 220ms allow-discrete;
+}
+.options:popover-open { transform: none; }
+@starting-style { .options:popover-open { transform: translateX(100%); } }
+
+.options-head {
+  position: sticky; top: 0; z-index: 1;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-5);
+  background: var(--surface); border-bottom: 1px solid var(--line);
+}
+.options-head h2 { font-size: var(--fs-lg); font-weight: 650; }
+.options-head h2:focus { outline: none; }
+
+.options-section { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-5); }
+.options-section + .options-section { border-top: 1px solid var(--line); }
+.options-section h3 { font-size: var(--fs-md); font-weight: 650; }
+.options-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+
+.account-card { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3); }
+.account-line {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: var(--space-2) var(--space-3); padding-block: var(--space-3);
+}
+.account-card + .account-lines > .account-line:first-child, .account-line + .account-line { border-top: 1px solid var(--line); }
+.account-state { display: flex; align-items: center; gap: var(--space-2); font-weight: 600; }
+.dot-on, .dot-off { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.dot-on { background: var(--ok); }
+.dot-off { border: 1.5px solid var(--text-3); }
+.account-action { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); }
+
+.options .segmented { display: grid; grid-template-columns: 1fr 1fr; }
+
+.path {
+  font: 400 var(--fs-sm)/1.45 var(--font-mono); color: var(--text-2);
+  background: var(--surface-2); border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3); overflow-wrap: anywhere;
+}
 
 /* ---------- Surfaces ---------- */
 

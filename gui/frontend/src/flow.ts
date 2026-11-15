@@ -9,6 +9,7 @@ import { asLang, type Lang } from "./i18n";
 export type Gate = "loading" | "setup" | "privacy" | "flow";
 export type Step = 1 | 2 | 3;
 export type Busy = null | "spotify" | "youtube" | "playlists" | "resolve" | "plan" | "write" | "report";
+export type Brand = "spotify" | "youtube";
 
 const LANG_KEY = "soundsync.lang";
 
@@ -40,6 +41,7 @@ export function useFlow() {
   const [adopt, setAdoptState] = useState<Record<string, string | undefined>>({});
   const [privacy, setPrivacy] = useState<Privacy>("private");
   const [plan, setPlan] = useState<Models.RunView | null>(null);
+  const [planView, setPlanView] = useState<Brand>("youtube");
   const [result, setResult] = useState<Models.RunView | null>(null);
   const [progress, setProgress] = useState<Record<string, Progress>>({});
   const [busy, setBusy] = useState<Busy>(null);
@@ -125,6 +127,7 @@ export function useFlow() {
     setDests(null);
     setAdoptState({});
     setPlan(null);
+    setPlanView("youtube");
     setResult(null);
     setProgress({});
     setStoppedNote(false);
@@ -151,7 +154,7 @@ export function useFlow() {
       await Settings.CreateConfigFile().catch((err: unknown) => setError(messageOf(err)));
       await refreshStatus();
     },
-    openConfigFolder: () => Settings.OpenConfigFolder().catch((err: unknown) => setError(messageOf(err))),
+    openConfigFile: () => Settings.OpenConfigFile().catch((err: unknown) => setError(messageOf(err))),
 
     /** cancel abandons a login the user will not finish in the browser. */
     cancel() {
@@ -204,6 +207,7 @@ export function useFlow() {
       setAdoptState((cur) => ({ ...cur, [sourceId]: playlistId }));
     },
     setPrivacy,
+    setPlanView,
 
     async findSongs() {
       setProgress({});
@@ -243,9 +247,23 @@ export function useFlow() {
 
   return {
     gate, status, lang, update, step, playlists, selected, dests, adopt, privacy,
-    plan, result, progress, busy, login, error, stoppedNote, savedPath,
+    plan, planView, result, progress, busy, login, error, stoppedNote, savedPath,
     ...actions,
   };
 }
 
 export type Flow = ReturnType<typeof useFlow>;
+
+/** livePlan is the plan step 2 shows: a stopped search has none. */
+export function livePlan(flow: Flow): Models.RunView | null {
+  return flow.plan && !flow.plan.cancelled ? flow.plan : null;
+}
+
+/** brandOnScreen names the platform whose mark the current view shows;
+ * nothing else on screen may show the other one (docs/compliance.md). */
+export function brandOnScreen(flow: Flow): Brand | null {
+  if (flow.gate !== "flow") return null;
+  if (flow.step === 1) return "spotify";
+  if (!flow.status?.youtube) return null;
+  return flow.step === 2 && livePlan(flow) && flow.planView === "spotify" ? "spotify" : "youtube";
+}

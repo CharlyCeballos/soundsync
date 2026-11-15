@@ -32,7 +32,7 @@ Free, personal, open source (MIT), no account with Soundsync: it runs on the use
 
 ## Brand Commitments
 - Name: Soundsync. Never "Spotify" or "YouTube" in the name or the icon.
-- Icon: indigo-to-violet rounded square with a white list whose middle line becomes a chevron (`gui/build/appicon.svg`). No green, no circle with waves, no play triangle.
+- Icon: cobalt-to-azure rounded square with a white list whose middle line becomes a chevron (`gui/build/appicon.svg`). No green, no circle with waves, no play triangle.
 - Voice *(inferred)*: plain, calm, specific. Says what will happen before it happens; errors say what went wrong and what to do.
 
 ## Evidence on Hand
