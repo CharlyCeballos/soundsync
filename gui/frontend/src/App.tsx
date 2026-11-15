@@ -1,9 +1,10 @@
 import { useEffect } from "react";
 import { useFlow, type Flow, type Step } from "./flow";
-import { I18nProvider, useT, type Lang } from "./i18n";
+import { I18nProvider, useT } from "./i18n";
 import type { Key } from "./i18n/en";
 import { AppMark, Icon, Spinner } from "./components/Icon";
 import { ExternalLink } from "./components/ui";
+import { OptionsButton, OptionsPanel } from "./components/Options";
 import { Setup } from "./screens/Setup";
 import { Privacy } from "./screens/Privacy";
 import { Choose } from "./screens/Choose";
@@ -38,7 +39,7 @@ function Frame({ flow }: { flow: Flow }) {
           <span>{t("appName")}</span>
         </div>
         {flow.gate === "flow" ? <Stepper flow={flow} /> : <span className="spacer" />}
-        <LanguageSwitch lang={flow.lang} onChange={(l) => void flow.setLang(l)} />
+        <OptionsButton />
       </header>
 
       {flow.update ? (
@@ -56,6 +57,7 @@ function Frame({ flow }: { flow: Flow }) {
       </main>
 
       <Footer flow={flow} />
+      <OptionsPanel flow={flow} />
     </div>
   );
 }
@@ -116,20 +118,6 @@ function Stepper({ flow }: { flow: Flow }) {
         })}
       </ol>
     </nav>
-  );
-}
-
-function LanguageSwitch({ lang, onChange }: { lang: Lang; onChange: (l: Lang) => void }) {
-  const { t } = useT();
-  return (
-    <div className="lang" role="group" aria-label={t("language")}>
-      {(["es", "en"] as const).map((l) => (
-        <button key={l} type="button" aria-pressed={lang === l} onClick={() => onChange(l)} lang={l}>
-          {l === "es" ? "ES" : "EN"}
-          <span className="visually-hidden">{l === "es" ? " Español" : " English"}</span>
-        </button>
-      ))}
-    </div>
   );
 }
 

@@ -1,4 +1,4 @@
-import { test, expect, english, chooseAndReview } from "./fixtures";
+import { test, expect, english, language, chooseAndReview } from "./fixtures";
 
 test.describe("same-title playlist (todo 4.4)", () => {
   test.use({ scenario: "samename" });
@@ -60,7 +60,7 @@ test.describe("daily quota", () => {
   test.use({ scenario: "quota" });
 
   test("stops cleanly and says why, in Spanish", async ({ page }) => {
-    await page.getByRole("button", { name: /^ES/ }).click();
+    await language(page, "Español");
     await page.getByRole("button", { name: "Conectar Spotify" }).click();
     await page.getByRole("checkbox", { name: /Covers/ }).check();
     await page.getByRole("button", { name: "Continuar" }).click();

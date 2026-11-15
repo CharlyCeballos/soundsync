@@ -153,14 +153,20 @@ func TestFirstRunGates(t *testing.T) {
 		t.Fatalf("connect without config: err = %v", err)
 	}
 
+	if err := app.Settings.OpenConfigFile(); !errors.Is(err, ErrNoConfigFile) {
+		t.Errorf("open before create: err = %v, want ErrNoConfigFile", err)
+	}
 	if err := app.Settings.CreateConfigFile(); err != nil {
 		t.Fatal(err)
 	}
 	if b, _ := os.ReadFile(filepath.Join(dir, ".env")); string(b) != config.Example {
 		t.Error("the created file must be the example")
 	}
-	if len(h.opened) != 1 || h.opened[0] != dir {
-		t.Errorf("opened %v, want the config folder", h.opened)
+	if len(h.opened) != 1 || h.opened[0] != filepath.Join(dir, ".env") {
+		t.Errorf("opened %v, want the new .env itself", h.opened)
+	}
+	if err := app.Settings.OpenConfigFile(); err != nil || h.opened[len(h.opened)-1] != filepath.Join(dir, ".env") {
+		t.Errorf("open the file: err=%v opened=%v, want the .env itself", err, h.opened)
 	}
 	if err := app.Settings.CreateConfigFile(); !errors.Is(err, ErrConfigExists) {
 		t.Errorf("second create: err = %v, want ErrConfigExists", err)

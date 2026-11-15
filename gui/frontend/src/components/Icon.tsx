@@ -16,6 +16,7 @@ const paths = {
   copy: "M9 9h10v10H9zM6 15H5V5h10v1",
   download: "M12 4v11M7 10.5l5 5 5-5M5 19.5h14",
   stop: "M7 7h10v10H7z",
+  settings: "M10.61 4.83L10.83 2.47L13.17 2.47L13.39 4.83L16.08 5.95L17.91 4.44L19.56 6.09L18.05 7.92L19.17 10.61L21.53 10.83L21.53 13.17L19.17 13.39L18.05 16.08L19.56 17.91L17.91 19.56L16.08 18.05L13.39 19.17L13.17 21.53L10.83 21.53L10.61 19.17L7.92 18.05L6.09 19.56L4.44 17.91L5.95 16.08L4.83 13.39L2.47 13.17L2.47 10.83L4.83 10.61L5.95 7.92L4.44 6.09L6.09 4.44L7.92 5.95ZM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
 } as const;
 
 export type IconName = keyof typeof paths;
@@ -53,8 +54,8 @@ export function AppMark() {
     <svg viewBox="0 0 1024 1024" aria-hidden>
       <defs>
         <linearGradient id="mark-bg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#4338CA" />
-          <stop offset="1" stopColor="#7C3AED" />
+          <stop offset="0" stopColor="#1442BE" />
+          <stop offset="1" stopColor="#0084DF" />
         </linearGradient>
       </defs>
       <rect x="48" y="48" width="928" height="928" rx="216" fill="url(#mark-bg)" />

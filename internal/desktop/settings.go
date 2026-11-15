@@ -215,20 +215,21 @@ func allowed(link string) bool {
 	return false
 }
 
-// OpenConfigFolder shows the folder where the .env goes, creating it first.
-func (s *Settings) OpenConfigFolder() error {
-	dir := s.st.opts.ConfigDir
-	if dir == "" {
+// OpenConfigFile opens the .env itself in the user's text editor: its
+// folder alone hides it in file managers that hide dotfiles.
+func (s *Settings) OpenConfigFile() error {
+	path := s.st.envFile()
+	if path == "" {
 		return ErrNoConfigDir
 	}
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return err
+	if info, err := os.Stat(path); err != nil || !info.Mode().IsRegular() {
+		return ErrNoConfigFile
 	}
-	return s.st.host.OpenExternal(dir)
+	return s.st.host.OpenExternal(path)
 }
 
 // CreateConfigFile writes a .env with comments and empty IDs for the user
-// to fill in, then shows its folder. It never replaces an existing file.
+// to fill in, then opens it. It never replaces an existing file.
 func (s *Settings) CreateConfigFile() error {
 	path := s.st.envFile()
 	if path == "" {
@@ -251,7 +252,7 @@ func (s *Settings) CreateConfigFile() error {
 	if err != nil {
 		return err
 	}
-	return s.st.host.OpenExternal(s.st.opts.ConfigDir)
+	return s.st.host.OpenExternal(path)
 }
 
 // CheckUpdate asks GitHub for a newer published release (Policies III.B.1).

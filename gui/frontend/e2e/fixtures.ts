@@ -75,9 +75,17 @@ export const test = base.extend<{ scenario: Scenario; app: App }>({
   }, { auto: true }],
 });
 
+/** language picks the interface language in the options panel, then
+ * closes it the way a keyboard user would. */
+export async function language(page: import("@playwright/test").Page, name: "English" | "Español") {
+  await page.getByRole("button", { name: /^(Options|Opciones)$/ }).click();
+  await page.getByRole("button", { name }).click();
+  await page.keyboard.press("Escape");
+}
+
 /** english makes the page deterministic whatever the system language. */
 export async function english(page: import("@playwright/test").Page) {
-  await page.getByRole("button", { name: /^EN/ }).click();
+  await language(page, "English");
 }
 
 /** connectBoth logs in to both fake services and picks playlists by name. */

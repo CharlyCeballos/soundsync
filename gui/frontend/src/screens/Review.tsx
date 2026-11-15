@@ -1,12 +1,10 @@
 import { useState } from "react";
-import type { Flow } from "../flow";
+import { brandOnScreen, livePlan, type Flow } from "../flow";
 import { useT, type Translate } from "../i18n";
 import { Icon, Spinner } from "../components/Icon";
 import { Banner, ExternalLink, Pager, SpotifyAttribution, YouTubeAttribution, pageOf } from "../components/ui";
 import { RowStatus, privacyShortKey, statusKey, whyKey, type Models, type Privacy, type Row } from "../api";
 import { Connect } from "./Connect";
-
-type View = "youtube" | "spotify";
 
 /** Review is step 2. By default everything here is the YouTube view; the
  * Spotify view swaps the whole region, logo included, so the two brands
@@ -14,13 +12,12 @@ type View = "youtube" | "spotify";
  * where the exact changes are listed. */
 export function Review({ flow }: { flow: Flow }) {
   const { t } = useT();
-  const [view, setView] = useState<View>("youtube");
   const channel = flow.status?.youtube;
 
   if (!channel) return <div className="page"><Connect flow={flow} provider="youtube" /></div>;
 
-  const plan = flow.plan && !flow.plan.cancelled ? flow.plan : null;
-  const showSpotify = plan !== null && view === "spotify";
+  const plan = livePlan(flow);
+  const showSpotify = brandOnScreen(flow) === "spotify";
 
   return (
     <div className="page">
@@ -52,11 +49,11 @@ export function Review({ flow }: { flow: Flow }) {
           <div className="row" style={{ marginBottom: 16 }}>
             <span className="label">{t("showOn")}</span>
             <div className="segmented" role="group" aria-label={t("showOn")}>
-              <button type="button" aria-pressed={view === "youtube"} onClick={() => setView("youtube")}>{t("showYouTube")}</button>
-              <button type="button" aria-pressed={view === "spotify"} onClick={() => setView("spotify")}>{t("showSpotify")}</button>
+              <button type="button" aria-pressed={!showSpotify} onClick={() => flow.setPlanView("youtube")}>{t("showYouTube")}</button>
+              <button type="button" aria-pressed={showSpotify} onClick={() => flow.setPlanView("spotify")}>{t("showSpotify")}</button>
             </div>
           </div>
-          {view === "youtube" ? <YouTubePlan flow={flow} plan={plan} /> : <SpotifyPlan flow={flow} plan={plan} onBack={() => setView("youtube")} />}
+          {!showSpotify ? <YouTubePlan flow={flow} plan={plan} /> : <SpotifyPlan flow={flow} plan={plan} onBack={() => flow.setPlanView("youtube")} />}
         </>
       ) : (
         flow.dests && <Destinations flow={flow} />

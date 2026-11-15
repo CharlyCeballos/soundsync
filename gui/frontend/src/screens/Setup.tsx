@@ -50,9 +50,9 @@ export function Setup({ flow }: { flow: Flow }) {
               </div>
               <div className="row-wrap">
                 {config.found ? (
-                  <button type="button" className="btn btn-secondary" onClick={() => void flow.openConfigFolder()}>
-                    <Icon name="folder" />
-                    {t("setupOpenFolder")}
+                  <button type="button" className="btn btn-secondary" onClick={() => void flow.openConfigFile()}>
+                    <Icon name="file" />
+                    {t("setupOpenFile")}
                   </button>
                 ) : (
                   <button type="button" className="btn btn-primary" onClick={() => void flow.createConfig()}>

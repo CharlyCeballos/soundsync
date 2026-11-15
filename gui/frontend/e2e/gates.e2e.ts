@@ -19,7 +19,7 @@ test.describe("without a settings file", () => {
     await expect(page.getByText("SPOTIFY_CLIENT_ID", { exact: true })).toBeVisible();
     await expect(page.getByText("Missing")).toHaveCount(3); // the two IDs and the secret
     const world = await app.state();
-    expect(world.opened).toContain(world.dir);
+    expect(world.opened).toContain(path.join(world.dir, ".env"));
     const created = fs.readFileSync(path.join(world.dir, ".env"), "utf8");
     expect(created).toContain("SPOTIFY_REDIRECT_URI=http://127.0.0.1:8888/callback");
 

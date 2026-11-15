@@ -110,7 +110,7 @@ How the GUI does it (2026-11-02):
 | Feature it on any page where the YouTube API has a presence, next to the YouTube content, never the most prominent element | "Logo Sizing and Placement" | Every YouTube view (step 2, step 3) shows it above the content, smaller than the heading |
 | Logos must link to YouTube content | "Requirements" | It links to the user's channel |
 | Do not change the YouTube logo's colors; the "Developed with YouTube" mark may be one solid color | "Requirements" | Official dark-text / light-text files per theme, only transparent margins trimmed |
-| Never combine "YouTube"/"YT" with the app's name; no YouTube marks in names or icons | "Naming" | "Soundsync"; own icon (indigo list + chevron, no play triangle) |
+| Never combine "YouTube"/"YT" with the app's name; no YouTube marks in names or icons | "Naming" | "Soundsync"; own icon (cobalt list + chevron, no play triangle) |
 | Each page or feature that shows YouTube content must make YouTube clear as the source; with mixed sources, attribute each YouTube item | Policies III.F.2.a–b | The plan never mixes sources in one view (see accepted risks); every video row links to youtube.com |
 
 ### GUI rules from the Developer Policies
