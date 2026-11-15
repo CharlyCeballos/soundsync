@@ -3,13 +3,15 @@
 Único archivo de tracking. Los `planV<x>.md` no se mueven.
 
 Estado: `todo` | `doing` | `done` | `blocked`  
-Última actualización: 2026-11-02.
+Última actualización: 2026-11-14.
 
 ## Ahora
 
-Fase 1 cerrada (GO 2026-10-30, `planV2.md` escrito 2026-11-01). **Fase 2 cerrada 2026-11-01** (autor): todos los ítems done; pruebas unit, integración, CI y reales en verde (solo T.7 sigue todo: sin playlists colaborativas). **Fase 3 cerrada 2026-11-02** (autor): todos los ítems done; `v0.1.0` publicado (D.2) y probado como usuario nuevo en Windows 11 y en Debian 13. Ya se puede re-correr `youtube add` sobre "The Way" y "Covers" (2.17 conserva la corrección manual; verificado en real 2026-11-01). Playlists privadas de prueba **"Soundsync test"** (Spotify: Bohemian Rhapsody, Billie Jean, Take on Me; YouTube: igual): el autor las conserva para pruebas futuras (decisión 2026-11-02). Repo en `github.com/CharlyCeballos/soundsync` (aún PRIVATE, ver D.1).
+Fase 1 cerrada (GO 2026-10-30, `planV2.md` escrito 2026-11-01). **Fase 2 cerrada 2026-11-01** (autor): todos los ítems done; pruebas unit, integración, CI y reales en verde (solo T.7 sigue todo: sin playlists colaborativas). **Fase 3 cerrada 2026-11-02** (autor): todos los ítems done; `v0.1.0` publicado (D.2) y probado como usuario nuevo en Windows 11 y en Debian 13. Ya se puede re-correr `youtube add` sobre "The Way" y "Covers" (2.17 conserva la corrección manual; verificado en real 2026-11-01). Playlists privadas de prueba **"Soundsync test"** (Spotify: Bohemian Rhapsody, Billie Jean, Take on Me; YouTube: igual): el autor las conserva para pruebas futuras (decisión 2026-11-02). Repo en `github.com/CharlyCeballos/soundsync` (PUBLIC, visto 2026-11-14, ver D.1).
 
-**Fase 4 (GUI) en la rama `phase4-gui`, 2026-11-02:** 4.1–4.6 hechos y probados con fakes, E2E, ventana real en Windows, `.msi` real en Windows 11 y `.deb` en Debian 13 (WSL). Prueba con cuentas reales en Windows hecha (T.10, encontró y se corrigió un bug de Desconectar). PR #1 en borrador con CI en verde. Diseño y desviaciones: `docs/specs/2026-11-02-phase4-gui-design.md`.
+**Fase 4 (GUI), 2026-11-02:** 4.1–4.6 hechos y probados con fakes, E2E, ventana real en Windows, `.msi` real en Windows 11 y `.deb` en Debian 13 (WSL). Prueba con cuentas reales en Windows hecha (T.10, encontró y se corrigió un bug de Desconectar). PR #1 mergeado a `main` el 2026-11-02. Diseño y desviaciones: `docs/specs/2026-11-02-phase4-gui-design.md`.
+
+**Prueba en Ubuntu 24.04, 2026-11-14 (T.14):** GUI compilada desde fuente con cuentas reales. No abre sin un perfil AppArmor (P.1); con él, todo el flujo pasa. Salieron 6 pendientes (P.1–P.6).
 
 ### Riesgos abiertos (al cerrar la fase 3, 2026-11-02)
 
@@ -21,7 +23,7 @@ Fase 1 cerrada (GO 2026-10-30, `planV2.md` escrito 2026-11-01). **Fase 2 cerrada
 
 **A vigilar:**
 
-- Con el repo privado (D.1, público después de la fase 4), los links del README a Releases y `PRIVACY.md` dan 404 a terceros, y el aviso de versión no le funciona a nadie.
+- Repo PUBLIC (visto 2026-11-14): los links del README a Releases y `PRIVACY.md` ya funcionan para terceros. El aviso de versión se puede probar en real con el próximo release.
 - GitHub está migrando `ubuntu-latest` a Ubuntu 26 (aviso en el CI del 2026-11-01). En el próximo release, confirmar que `dpkg-deb`, `zip` y el smoke test siguen verdes.
 - El aviso de versión puede retrasar hasta 2 s el arranque de `shell` con red lenta.
 
@@ -29,16 +31,17 @@ Fase 1 cerrada (GO 2026-10-30, `planV2.md` escrito 2026-11-01). **Fase 2 cerrada
 
 - Wails v3 lleva una semana estable (v3.0.0 2026-10-26, v3.1.0 2026-11-01, versión fija). Leer las notas antes de subirla.
 - Choque de marcas en el plan (Spotify vs YouTube): resuelto por vistas separadas, pero ninguna cláusula lo cubre explícitamente; vale preguntar a Spotify antes de abrir el repo.
-- La GUI de Linux se compila contra Debian 13: otras distros no están probadas. Probada en WSLg/Xvfb; la VM Debian 13 del autor queda como prueba de escritorio real opcional.
+- La GUI de Linux se compila contra Debian 13. Probada en WSLg/Xvfb; la VM Debian 13 del autor queda como prueba de escritorio real opcional. Ubuntu 24.04 (2026-11-14, desde fuente): no abre sin perfil AppArmor (P.1); el `.deb` de Debian 13 en Ubuntu (glibc 2.41 vs 2.39) sigue sin probar. Otras distros sin probar.
 - El `.msi` no está firmado (SmartScreen, como el zip).
 
-**Siguiente trabajo:** revisar y hacer merge del PR #1 (`phase4-gui`, borrador); luego D.3 (release GUI) y D.1 (repo público), ambos con OK del autor. Opcional: probar el `.deb` con cuentas reales en la VM Debian 13.
+**Siguiente trabajo:** P.1–P.6 (de la prueba en Ubuntu); D.3 (release GUI) con OK del autor. Opcional: probar el `.deb` con cuentas reales en la VM Debian 13.
 
 ### Para retomar
 
 - Comandos del spike: `go run ./cmd/soundsync shell` y dentro `spotify playlists`, `spotify tracks <playlist>`, `youtube playlists`, `youtube create <playlist>... [-y] [--privacy]`, `youtube add <playlist>... [--limit N] [-y]`, `login spotify|youtube`, `config check`, `exit`. Cada argumento = una playlist; nombres con espacios entre comillas.
 - Playlists ya copiadas en YouTube (private): "The Way to My Favorite Part" (2), "Tristes 😢😓" (6), "Covers" (7, con 1 corrección manual del autor).
 - Quota usada el 2026-10-30: ~950 units y 30 de 100 búsquedas. Se reinicia a medianoche hora del Pacífico.
+- Ubuntu 24.04 del autor (2026-11-14): Go 1.26.11 en `~/.local/go1.26.11/bin` (fuera del PATH), `wails3` v3.1.0 en `~/go/bin`, `libgtk-4-dev` + `libwebkitgtk-6.0-dev` instalados. Node viene de `pnpm env` (no hay `npm`). Perfil AppArmor de desarrollo `/etc/apparmor.d/soundsync-gui-dev` (solo `gui/bin/soundsync-gui`; se quita con `sudo apparmor_parser -R` + `rm`).
 
 ## Fase 0 — Cuentas
 
@@ -127,15 +130,27 @@ Fase 1 cerrada (GO 2026-10-30, `planV2.md` escrito 2026-11-01). **Fase 2 cerrada
 | T.11 | Unit + integración GUI (Go) | done | 2026-11-02: `internal/{session,copier,report,update,consent,desktop}` + `config`; `-race` en WSL Debian 13; 4 mutaciones a salvaguardas detectadas |
 | T.12 | E2E GUI (Playwright, kit `~/.e2e`) | done | 2026-11-02: `gui/frontend/e2e`, cada test levanta su propia build e2e (server mode + fakes) con un escenario. 27/27 (9 escenarios × claro, oscuro, ventana mínima); 48/48 con `--repeat-each=2` cuando eran 8. Solo local (CI no tiene el kit) |
 | T.13 | Empaque real | done | 2026-11-02: `.msi` en Windows 11 sin admin (17/17), `.deb` en WSL Debian 13 (instala, `-version`, GUI en Xvfb, purga) |
+| T.14 | Real: GUI con cuentas reales (Ubuntu 24.04) | done | 2026-11-14, Ubuntu 24.04.5 (GNOME Wayland, glibc 2.39, GTK 4.14.5, WebKitGTK 2.52.6). Compilada desde fuente (`wails3 task build:linux`, Go 1.26.11), no el `.deb`. **1er arranque: crash** (`bwrap: setting up uid map: Permission denied`, SIGTRAP): Ubuntu 23.10+ restringe user namespaces sin privilegios (`kernel.apparmor_restrict_unprivileged_userns=1`) y el sandbox de WebKitGTK usa bwrap → P.1. Con un perfil AppArmor temporal (`userns`, solo ese binario) abre con el sandbox activo. Configuración: crea `~/.config/soundsync/.env` (600, carpeta 700). Login real Spotify + Google, OAuth en Chrome. Un secret de Google mal pegado (4 caracteres) salió "Listo" y falló hasta el token exchange (`invalid_client`, con la sugerencia correcta) → P.4. "Soundsync test" al día sin búsquedas; con "Don't Stop Me Now - Remastered 2011" agregada en Spotify: 1 búsqueda, +1 video (Topic). Reporte CSV y JSON por el diálogo nativo GTK (4 filas, atribución en cada una). Cierre: exit 0, puertos 8888/8889 libres. **A revisar escuchando:** eligió "Don't Stop Me Now (...Revisited)" de *Queen - Topic*, probablemente otra versión. Los logins fallidos de la prueba los causó el `xdg-open` de prueba + Cancelar, no la app. Desconectar difícil de encontrar → P.2 |
+
+## Pendientes (prueba en Ubuntu, 2026-11-14)
+
+| ID | Item | Estado | Notas |
+|---|---|---|---|
+| P.1 | AppArmor en el `.deb` de la GUI (Ubuntu 23.10+) | todo | Perfil `/etc/apparmor.d/soundsync-gui` (`abi <abi/4.0>`, `flags=(unconfined) { userns, }`, como los de `code` o `epiphany` que trae Ubuntu) + `postinst` que lo carga con `apparmor_parser -r` si AppArmor está activo. Mantiene el sandbox de WebKit (descartado `WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS`). Sin probar: si el binario compilado en Debian 13 (glibc 2.41) corre en Ubuntu 24.04 (glibc 2.39); si no corre, el `.deb` no sirve en Ubuntu aunque tenga el perfil |
+| P.2 | Menú de opciones / configuración siempre visible | todo | Pedido del autor 2026-11-14. Hoy Desconectar solo está en el paso 1 (Spotify) y en la vista YouTube del paso 2; en el paso 3 no hay. Reunir ahí cuentas conectadas + Desconectar, idioma y archivo de configuración |
+| P.3 | Credenciales desde la app | todo | Propuesta 2026-11-14, falta OK del autor: formulario para pegar Spotify Client ID y Google ID + secret con validación en vivo (la app escribe el `.env`), "Importar archivo de Google" (`client_secret_*.json` de la consola), links directos y botón copiar del redirect de Spotify. Traer credenciales propias no se puede quitar: Spotify Terms VI.1.2–VI.1.3 + 5 usuarios en Dev Mode; YouTube Policies III.D.1 + quota por proyecto |
+| P.4 | Validar formato en `internal/config` | todo | Propuesta: Spotify Client ID = 32 hex; Google Client ID termina en `.apps.googleusercontent.com`; secret ≥ 20 caracteres (los nuevos `GOCSPX-…` miden 35, los antiguos 24). Hoy solo se validan las redirect URI |
+| P.5 | "Abrir su carpeta" en Linux muestra la carpeta vacía | todo | Nautilus oculta `.env` (Ctrl+H). Abrir el archivo en vez de la carpeta, o queda cubierto por P.3 |
+| P.6 | Frontend de npm a pnpm | todo | Decisión del autor 2026-11-14: `pnpm-lock.yaml` (`pnpm import`), Taskfile, `gui/build/package.sh`, CI (job `gui` + release) y `gui/README.md`. Validar con build y E2E |
 
 ## Despliegue / releases
 
 | ID | Item | Estado | Notas |
 |---|---|---|---|
-| D.1 | Repo GitHub público | doing | 2026-11-01: `github.com/CharlyCeballos/soundsync` creado y pusheado, module path actualizado, `.gitattributes` LF. Visibilidad **PRIVATE**: decisión autor 2026-11-01, **público después de la fase 4**. Historial revisado 2026-11-01: las credenciales reales del `.env` no aparecen en ningún commit (solo fixtures de test) |
+| D.1 | Repo GitHub público | done | 2026-11-01: `github.com/CharlyCeballos/soundsync` creado y pusheado, module path actualizado, `.gitattributes` LF. Visibilidad **PRIVATE**: decisión autor 2026-11-01, **público después de la fase 4**. Historial revisado 2026-11-01: las credenciales reales del `.env` no aparecen en ningún commit (solo fixtures de test). **PUBLIC** visto con `gh repo view` el 2026-11-14 |
 | D.2 | Release CLI Windows + deb | done | 2026-11-01: `v0.1.0` creado como **borrador** por el workflow de 3.1/3.2. Publicado por el autor el 2026-11-02; mientras el repo sea privado (D.1), solo él lo ve |
 | D.3 | Release GUI msi + deb | todo | Listo para el próximo tag: `release.yml` ya agrega el `.msi` y el `.deb` de la GUI al borrador. Tag y publicación con OK del autor |
-| D.4 | Privacy policy URL (`PRIVACY.md` en repo público) | doing | 2026-11-01: `PRIVACY.md` escrito (usa YouTube API Services, qué lee/escribe/guarda, revocar, contacto) y enlazado desde README y el aviso de primer uso. El link solo funciona para terceros cuando el repo sea público (D.1) |
+| D.4 | Privacy policy URL (`PRIVACY.md` en repo público) | done | 2026-11-01: `PRIVACY.md` escrito (usa YouTube API Services, qué lee/escribe/guarda, revocar, contacto) y enlazado desde README y el aviso de primer uso. El link solo funciona para terceros cuando el repo sea público (D.1). Repo público desde D.1: link funcional |
 
 ## Bloqueos
 
@@ -145,6 +160,7 @@ _Ninguno registrado._
 
 | Fecha | Qué |
 |---|---|
+| 2026-11-14 | T.14: GUI con cuentas reales en Ubuntu 24.04, compilada desde fuente. Crash por AppArmor + bwrap de WebKitGTK, salvado con un perfil temporal. Login real Spotify + Google, +1 video, reporte CSV/JSON por diálogo GTK, cierre limpio. Nuevos P.1–P.6 (AppArmor en el `.deb`, menú de opciones, credenciales desde la app, validar formato, `.env` oculto en Nautilus, pnpm). Repo visto PUBLIC: D.1 y D.4 done. |
 | 2026-11-02 | PR #1 (borrador) `phase4-gui` → CI verde al 1er intento, incluido el job `gui` en `debian:trixie`. T.10 real en Windows: el autor aceptó la política `2026-11-03`; "Soundsync test" al día y "Acoustics" +11 videos; reporte CSV real; bug de Desconectar corregido con E2E (27/27). |
 | 2026-11-02 | `PRIVACY.md` cubre la app de escritorio (caché `webview`, escribir solo con "Escribir en YouTube", Desconectar revoca, aviso de versión al abrir la app); versión → `2026-11-03` (decisión del autor). Un test exige que `consent.Version` y `PRIVACY.md` digan lo mismo. |
 | 2026-11-02 | **Fase 4 (GUI)** en `phase4-gui`. 4.1: Wails v3.1.0 elegido tras spike en Windows + Debian 13. Plan aprobado por el autor (design doc `docs/specs/2026-11-02-phase4-gui-design.md`). Refactor del motor a `internal/` sin cambiar la CLI; backend `internal/desktop`; cáscara `gui/`; frontend React. Investigación de cumplimiento nueva (Branding de YouTube, Compliance Tips, Software Principles) en `compliance.md`. Empaque con wixl elegido tras prueba real (sin WiX ni EULA). Tests: Go con `-race`, 24 E2E, `.msi` y `.deb` reales. Falta T.10 con el autor. |
