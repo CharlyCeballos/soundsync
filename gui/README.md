@@ -12,7 +12,8 @@ It is its own Go module (`replace ../`), so the CLI builds and tests without CGO
 
 ## Requirements
 
-Go 1.26, Node 20.19+, `wails3` v3.1.0 (`go install github.com/wailsapp/wails/v3/cmd/wails3@v3.1.0`).
+Go 1.26, Node 20.19+, pnpm 12 (the exact version is `packageManager` in `frontend/package.json`), `wails3` v3.1.0 (`go install github.com/wailsapp/wails/v3/cmd/wails3@v3.1.0`).
+`frontend/pnpm-workspace.yaml` makes pnpm refuse packages published less than 7 days ago.
 Debian 13 also needs `build-essential pkg-config libgtk-4-dev libwebkitgtk-6.0-dev`.
 
 ## Tasks

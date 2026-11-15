@@ -76,21 +76,30 @@ jobs:
           soundsync version | tee /dev/stderr | grep -F "soundsync $TAG "
 
       # Desktop app (todo 4.6): .deb and .msi, built in Debian 13 (the GUI
-      # links its GTK and WebKitGTK) by the script CI runs; the host's Go and
-      # wails3 are mounted read-only. The .deb is installed and run inside.
+      # links its GTK and WebKitGTK) by the script CI runs; the host's Go,
+      # wails3 and pnpm are mounted read-only. The .deb is installed and run inside.
       - name: wails3
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.1.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        id: pnpm
+        with:
+          package_json_file: gui/frontend/package.json
       - name: gui packages
+        env:
+          PNPM_DEST: ${{ steps.pnpm.outputs.dest }}
+          PNPM_BIN: ${{ steps.pnpm.outputs.bin_dest }}
         run: |
+          # Same path inside, so links under the pnpm folder keep working.
           docker run --rm -e TAG \
             -v "$PWD:/src" -w /src \
             -v "$(go env GOROOT):/usr/local/go:ro" -v "$(go env GOPATH)/bin:/opt/gobin:ro" \
-            -e PATH=/usr/local/go/bin:/opt/gobin:/usr/sbin:/usr/bin:/sbin:/bin \
+            -v "$PNPM_DEST:$PNPM_DEST:ro" \
+            -e "PATH=$PNPM_BIN:/usr/local/go/bin:/opt/gobin:/usr/sbin:/usr/bin:/sbin:/bin" \
             -e GOFLAGS=-buildvcs=false -e GOTOOLCHAIN=local \
             debian:trixie@sha256:2dc419c6d7fe3dad0a2f9fd469c34cc90b0f9ba642d8fde837fe3d7d34a0e7f1 \
             bash -c 'apt-get update -qq &&
               apt-get install -y -qq --no-install-recommends ca-certificates build-essential pkg-config \
-                libgtk-4-dev libwebkitgtk-6.0-dev nodejs npm wixl apparmor >/dev/null &&
+                libgtk-4-dev libwebkitgtk-6.0-dev nodejs wixl apparmor >/dev/null &&
               gui/build/package.sh "$TAG" dist --smoke'
 
       - name: checksums

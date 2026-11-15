@@ -4,7 +4,7 @@ import net from "node:net";
 import path from "node:path";
 import { test as base, expect } from "@gometrix/e2e-kit";
 
-// Built by `wails3 task build:e2e` (npm run e2e:build).
+// Built by `wails3 task build:e2e` (pnpm run e2e:build).
 const BINARY = path.join(import.meta.dirname, "..", "..", "bin", process.platform === "win32" ? "soundsync-gui-e2e.exe" : "soundsync-gui-e2e");
 const START_TIMEOUT_MS = 15_000;
 
@@ -54,7 +54,7 @@ export const test = base.extend<{ scenario: Scenario; app: App }>({
 
   /** app starts this test's own copy of the app and opens it (every test). */
   app: [async ({ page, scenario }, use) => {
-    if (!fs.existsSync(BINARY)) throw new Error(`missing ${BINARY}: run \`npm run e2e:build\` first`);
+    if (!fs.existsSync(BINARY)) throw new Error(`missing ${BINARY}: run \`pnpm run e2e:build\` first`);
     const port = await freePort();
     const proc = spawn(BINARY, ["-scenario", scenario], {
       env: { ...process.env, WAILS_SERVER_PORT: String(port) },

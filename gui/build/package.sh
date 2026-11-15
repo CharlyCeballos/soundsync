@@ -7,7 +7,7 @@
 #
 # Runs on Debian 13 (trixie) only: the Linux binary links the system's GTK and
 # WebKitGTK, so it must be built against the release it ships for (CI runs it
-# in a debian:trixie container). Needs Go 1.26+, Node 20.19+ with npm,
+# in a debian:trixie container). Needs Go 1.26+, Node 20.19+, pnpm 12,
 # build-essential, pkg-config, libgtk-4-dev, libwebkitgtk-6.0-dev, wixl and
 # wails3 v3.1.0 on PATH. --smoke installs the .deb with apt (as root) and runs
 # it, which proves its dependencies resolve on a bare system; it also needs
@@ -31,9 +31,9 @@ cd "$GUI"
 echo "== frontend"
 # Install scripts are not needed by any dependency: refusing them shrinks
 # what a compromised package could run on the build machine.
-(cd frontend && npm ci --ignore-scripts --no-audit --no-fund)
+(cd frontend && pnpm install --frozen-lockfile --ignore-scripts)
 wails3 generate bindings -clean=true -ts -i -f '-tags production'
-(cd frontend && npm run build)
+(cd frontend && pnpm run build)
 
 LDFLAGS="-w -s -X main.version=$TAG"
 

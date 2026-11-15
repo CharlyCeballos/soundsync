@@ -19,6 +19,8 @@ Fase 1 cerrada (GO 2026-10-30, `planV2.md` escrito 2026-11-01). **Fase 2 cerrada
 
 - Smart App Control: en un Windows 11 instalado de cero que lo tenga encendido, un exe sin firma probablemente se bloquea sin opción de ejecutarlo de todos modos. No se puede probar aquí (está apagado). Considerar una línea en el README.
 - T.7: playlist colaborativa de Spotify (no hay ninguna en la cuenta del autor).
+- E2E de la GUI sin correr desde la migración a pnpm (P.6). El kit `~/.e2e` (`@gometrix/e2e-kit`) solo está en la otra máquina del autor; él lo subirá a su GitHub (decisión 2026-11-14).
+- Release con pnpm (P.6): `pnpm/action-setup` montado en el contenedor de Debian 13 se confirma con el próximo tag (D.3).
 
 **A vigilar:**
 
@@ -140,7 +142,7 @@ Fase 1 cerrada (GO 2026-10-30, `planV2.md` escrito 2026-11-01). **Fase 2 cerrada
 | P.3 | Credenciales desde la app | todo | Propuesta 2026-11-14, falta OK del autor: formulario para pegar Spotify Client ID y Google ID + secret con validación en vivo (la app escribe el `.env`), "Importar archivo de Google" (`client_secret_*.json` de la consola), links directos y botón copiar del redirect de Spotify. Traer credenciales propias no se puede quitar: Spotify Terms VI.1.2–VI.1.3 + 5 usuarios en Dev Mode; YouTube Policies III.D.1 + quota por proyecto |
 | P.4 | Validar formato en `internal/config` | todo | Propuesta: Spotify Client ID = 32 hex; Google Client ID termina en `.apps.googleusercontent.com`; secret ≥ 20 caracteres (los nuevos `GOCSPX-…` miden 35, los antiguos 24). Hoy solo se validan las redirect URI |
 | P.5 | "Abrir su carpeta" en Linux muestra la carpeta vacía | todo | Nautilus oculta `.env` (Ctrl+H). Abrir el archivo en vez de la carpeta, o queda cubierto por P.3 |
-| P.6 | Frontend de npm a pnpm | todo | Decisión del autor 2026-11-14: `pnpm-lock.yaml` (`pnpm import`), Taskfile, `gui/build/package.sh`, CI (job `gui` + release) y `gui/README.md`. Validar con build y E2E |
+| P.6 | Frontend de npm a pnpm | done | 2026-11-14, rama `build/pnpm`: `pnpm import` → `pnpm-lock.yaml` (mismos 52 paquetes y versiones que `package-lock.json`); `packageManager: pnpm@12.8.1`, que pnpm 12 fija en el lockfile con integridad; `minimum-release-age` pasa del `.npmrc` a `pnpm-workspace.yaml` (`minimumReleaseAge`), porque pnpm 12 ya no lo leía del `.npmrc`; Taskfile, `package.sh`, CI y release con `pnpm/action-setup` v6.1.1 por SHA (en release se monta en el contenedor como Go y wails3); `nodejs` de Debian sigue para Vite. Local: build limpio por Taskfile, `typecheck`, `dev` con `--port`. CI verde (PR #4): "Lockfile passes supply-chain policies (52 entries)". pnpm 12.8.1 sin vulnerabilidades conocidas (GitHub Advisory DB y OSV, 2026-11-14; los advisories recientes afectan < 10.34.5, 11.x < 11.11.0 y 12.0.0-alpha). Sin probar: E2E (pospuesto por el autor, ver riesgos) y la ruta de release, que solo corre con un tag. Plan original: decisión del autor 2026-11-14: `pnpm-lock.yaml` (`pnpm import`), Taskfile, `gui/build/package.sh`, CI (job `gui` + release) y `gui/README.md`. Validar con build y E2E |
 
 ## Despliegue / releases
 
