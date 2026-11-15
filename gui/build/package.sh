@@ -10,7 +10,8 @@
 # in a debian:trixie container). Needs Go 1.26+, Node 20.19+ with npm,
 # build-essential, pkg-config, libgtk-4-dev, libwebkitgtk-6.0-dev, wixl and
 # wails3 v3.1.0 on PATH. --smoke installs the .deb with apt (as root) and runs
-# it, which proves its dependencies resolve on a bare system.
+# it, which proves its dependencies resolve on a bare system; it also needs
+# apparmor to check the profile's syntax.
 set -euo pipefail
 
 TAG=${1:?usage: package.sh vX.Y.Z <output dir> [--smoke]}
@@ -61,6 +62,7 @@ install -Dm755 "$WORK/soundsync-gui" "$PKG/usr/bin/soundsync-gui"
 install -Dm644 "build/linux/$APP_ID.desktop" "$PKG/usr/share/applications/$APP_ID.desktop"
 install -Dm644 build/linux/soundsync-256.png "$PKG/usr/share/icons/hicolor/256x256/apps/$APP_ID.png"
 install -Dm644 build/appicon.svg "$PKG/usr/share/icons/hicolor/scalable/apps/$APP_ID.svg"
+install -Dm644 build/linux/soundsync-gui.apparmor "$PKG/etc/apparmor.d/soundsync-gui"
 install -Dm644 "$ROOT/.env.example" "$PKG/usr/share/doc/soundsync-gui/env.example"
 install -d "$PKG/usr/share/doc/soundsync-gui"
 { cat "$ROOT/LICENSE"; printf '\n'; cat "$NOTICE"; } > "$PKG/usr/share/doc/soundsync-gui/copyright"
@@ -81,6 +83,16 @@ Description: copy Spotify playlists to YouTube (desktop app)
  (visible in YouTube Music). Each user brings their own Spotify app and
  Google OAuth client. The command-line tool is the soundsync package.
 EOF
+echo /etc/apparmor.d/soundsync-gui > "$PKG/DEBIAN/conffiles"
+# Load the profile now so the app opens without a reboot, as dh_apparmor does.
+cat > "$PKG/DEBIAN/postinst" <<'EOF'
+#!/bin/sh
+set -e
+if [ "$1" = configure ] && aa-enabled --quiet 2>/dev/null; then
+  apparmor_parser -r -T /etc/apparmor.d/soundsync-gui || true
+fi
+EOF
+chmod 755 "$PKG/DEBIAN/postinst"
 DEB="$OUT/soundsync-gui_${VERSION}_amd64.deb"
 dpkg-deb --root-owner-group --build "$PKG" "$DEB"
 
@@ -99,6 +111,7 @@ if [[ "$SMOKE" == "--smoke" ]]; then
   echo "== smoke test"
   apt-get install -y --no-install-recommends "$DEB" >/dev/null
   soundsync-gui -version | tee /dev/stderr | grep -F "soundsync-gui $TAG "
+  apparmor_parser -QK /etc/apparmor.d/soundsync-gui
   desktop-file-validate "/usr/share/applications/$APP_ID.desktop" 2>/dev/null || true
 fi
 

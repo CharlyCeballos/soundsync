@@ -18,12 +18,11 @@ Fase 1 cerrada (GO 2026-10-30, `planV2.md` escrito 2026-11-01). **Fase 2 cerrada
 **No probado (riesgo abierto):**
 
 - Smart App Control: en un Windows 11 instalado de cero que lo tenga encendido, un exe sin firma probablemente se bloquea sin opción de ejecutarlo de todos modos. No se puede probar aquí (está apagado). Considerar una línea en el README.
-- Aviso de versión mostrando una versión nueva contra GitHub real. Solo se probó con servidor falso (8 casos). En real solo se vio el caso 404 (repo privado → silencio). Se podrá probar cuando el repo sea público y exista un release mayor que el instalado.
 - T.7: playlist colaborativa de Spotify (no hay ninguna en la cuenta del autor).
 
 **A vigilar:**
 
-- Repo PUBLIC (visto 2026-11-14): los links del README a Releases y `PRIVACY.md` ya funcionan para terceros. El aviso de versión se puede probar en real con el próximo release.
+- Repo PUBLIC (visto 2026-11-14): los links del README a Releases y `PRIVACY.md` ya funcionan para terceros. Aviso de versión probado en real el 2026-11-14: la GUI `v0.0.0` del artifact mostró "Ya está disponible Soundsync v0.1.0". Hasta D.3, ese link lleva a un release sin paquetes de la GUI.
 - GitHub está migrando `ubuntu-latest` a Ubuntu 26 (aviso en el CI del 2026-11-01). En el próximo release, confirmar que `dpkg-deb`, `zip` y el smoke test siguen verdes.
 - El aviso de versión puede retrasar hasta 2 s el arranque de `shell` con red lenta.
 
@@ -31,10 +30,10 @@ Fase 1 cerrada (GO 2026-10-30, `planV2.md` escrito 2026-11-01). **Fase 2 cerrada
 
 - Wails v3 lleva una semana estable (v3.0.0 2026-10-26, v3.1.0 2026-11-01, versión fija). Leer las notas antes de subirla.
 - Choque de marcas en el plan (Spotify vs YouTube): resuelto por vistas separadas, pero ninguna cláusula lo cubre explícitamente; vale preguntar a Spotify antes de abrir el repo.
-- La GUI de Linux se compila contra Debian 13. Probada en WSLg/Xvfb; la VM Debian 13 del autor queda como prueba de escritorio real opcional. Ubuntu 24.04 (2026-11-14, desde fuente): no abre sin perfil AppArmor (P.1); el `.deb` de Debian 13 en Ubuntu (glibc 2.41 vs 2.39) sigue sin probar. Otras distros sin probar.
+- La GUI de Linux se compila contra Debian 13. Probada en WSLg/Xvfb; la VM Debian 13 del autor queda como prueba de escritorio real opcional. Ubuntu 24.04 probado el 2026-11-14 (P.1: perfil AppArmor en el `.deb`). Otras distros sin probar; Ubuntu 22.04 no trae `libwebkitgtk-6.0`.
 - El `.msi` no está firmado (SmartScreen, como el zip).
 
-**Siguiente trabajo:** P.1–P.6 (de la prueba en Ubuntu); D.3 (release GUI) con OK del autor. Opcional: probar el `.deb` con cuentas reales en la VM Debian 13.
+**Siguiente trabajo:** P.2–P.6 (de la prueba en Ubuntu); D.3 (release GUI) con OK del autor. Opcional: probar el `.deb` con cuentas reales en la VM Debian 13.
 
 ### Para retomar
 
@@ -136,7 +135,7 @@ Fase 1 cerrada (GO 2026-10-30, `planV2.md` escrito 2026-11-01). **Fase 2 cerrada
 
 | ID | Item | Estado | Notas |
 |---|---|---|---|
-| P.1 | AppArmor en el `.deb` de la GUI (Ubuntu 23.10+) | todo | Perfil `/etc/apparmor.d/soundsync-gui` (`abi <abi/4.0>`, `flags=(unconfined) { userns, }`, como los de `code` o `epiphany` que trae Ubuntu) + `postinst` que lo carga con `apparmor_parser -r` si AppArmor está activo. Mantiene el sandbox de WebKit (descartado `WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS`). Sin probar: si el binario compilado en Debian 13 (glibc 2.41) corre en Ubuntu 24.04 (glibc 2.39); si no corre, el `.deb` no sirve en Ubuntu aunque tenga el perfil |
+| P.1 | AppArmor en el `.deb` de la GUI (Ubuntu 23.10+) | done | 2026-11-14, rama `fix/gui-apparmor` (PR #3): `gui/build/linux/soundsync-gui.apparmor` → `/etc/apparmor.d/soundsync-gui` (conffile) + `postinst` que lo carga si `aa-enabled`; el smoke valida la sintaxis con `apparmor_parser -QK` (paquete `apparmor` en CI y release); CI sube el `.deb` y el `.msi` como artifact `gui-packages` (7 días) para probar en otras distros. **Probado en Ubuntu 24.04** con el `.deb` del artifact (compilado en Debian 13): el binario pide como máximo GLIBC_2.34 y `ldd -r` resuelve todo contra GTK 4.14 y WebKitGTK 2.52; `apt install` cargó el perfil sin reiniciar; abierto desde el menú de GNOME, la app y sus procesos de WebKit corren como `soundsync-gui (unconfined)`. README (EN + ES): Debian 13 y Ubuntu 24.04. Plan original: perfil `/etc/apparmor.d/soundsync-gui` (`abi <abi/4.0>`, `flags=(unconfined) { userns, }`, como los de `code` o `epiphany` que trae Ubuntu) + `postinst` que lo carga con `apparmor_parser -r` si AppArmor está activo. Mantiene el sandbox de WebKit (descartado `WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS`). Sin probar: si el binario compilado en Debian 13 (glibc 2.41) corre en Ubuntu 24.04 (glibc 2.39); si no corre, el `.deb` no sirve en Ubuntu aunque tenga el perfil |
 | P.2 | Menú de opciones / configuración siempre visible | todo | Pedido del autor 2026-11-14. Hoy Desconectar solo está en el paso 1 (Spotify) y en la vista YouTube del paso 2; en el paso 3 no hay. Reunir ahí cuentas conectadas + Desconectar, idioma y archivo de configuración |
 | P.3 | Credenciales desde la app | todo | Propuesta 2026-11-14, falta OK del autor: formulario para pegar Spotify Client ID y Google ID + secret con validación en vivo (la app escribe el `.env`), "Importar archivo de Google" (`client_secret_*.json` de la consola), links directos y botón copiar del redirect de Spotify. Traer credenciales propias no se puede quitar: Spotify Terms VI.1.2–VI.1.3 + 5 usuarios en Dev Mode; YouTube Policies III.D.1 + quota por proyecto |
 | P.4 | Validar formato en `internal/config` | todo | Propuesta: Spotify Client ID = 32 hex; Google Client ID termina en `.apps.googleusercontent.com`; secret ≥ 20 caracteres (los nuevos `GOCSPX-…` miden 35, los antiguos 24). Hoy solo se validan las redirect URI |
@@ -160,6 +159,7 @@ _Ninguno registrado._
 
 | Fecha | Qué |
 |---|---|
+| 2026-11-14 | P.1 done (PR #3): perfil AppArmor en el `.deb`, artifact `gui-packages` en CI. El `.deb` de Debian 13 instalado en Ubuntu 24.04 abre desde el menú con el sandbox de WebKit activo. Primer aviso de versión real (v0.0.0 → v0.1.0). |
 | 2026-11-14 | T.14: GUI con cuentas reales en Ubuntu 24.04, compilada desde fuente. Crash por AppArmor + bwrap de WebKitGTK, salvado con un perfil temporal. Login real Spotify + Google, +1 video, reporte CSV/JSON por diálogo GTK, cierre limpio. Nuevos P.1–P.6 (AppArmor en el `.deb`, menú de opciones, credenciales desde la app, validar formato, `.env` oculto en Nautilus, pnpm). Repo visto PUBLIC: D.1 y D.4 done. |
 | 2026-11-02 | PR #1 (borrador) `phase4-gui` → CI verde al 1er intento, incluido el job `gui` en `debian:trixie`. T.10 real en Windows: el autor aceptó la política `2026-11-03`; "Soundsync test" al día y "Acoustics" +11 videos; reporte CSV real; bug de Desconectar corregido con E2E (27/27). |
 | 2026-11-02 | `PRIVACY.md` cubre la app de escritorio (caché `webview`, escribir solo con "Escribir en YouTube", Desconectar revoca, aviso de versión al abrir la app); versión → `2026-11-03` (decisión del autor). Un test exige que `consent.Version` y `PRIVACY.md` digan lo mismo. |

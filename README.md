@@ -26,13 +26,13 @@ Download the latest release from the [Releases page](https://github.com/CharlyCe
 
 **Windows 10/11 (64-bit):** run `soundsync-gui_<version>_windows_amd64.msi`. It installs for your user only (no administrator rights) and adds **Soundsync** to the Start menu; a newer `.msi` replaces the old version. The installer is not code-signed, so SmartScreen may warn: choose **More info → Run anyway**. Soundsync needs the Microsoft Edge WebView2 Runtime, which Windows 11 already includes; if it is missing, Soundsync says so and offers Microsoft's download page. Uninstall it from **Settings → Apps**; your settings folder `%APPDATA%\soundsync` (your `.env`, consent and the window's cache) stays until you delete it.
 
-**Debian 13 (64-bit):**
+**Debian 13 and Ubuntu 24.04 (64-bit):**
 
 ```bash
 sudo apt install ./soundsync-gui_<version>_amd64.deb
 ```
 
-It appears as **Soundsync** in the applications menu and pulls in GTK 4 and WebKitGTK 6.0. It is built for Debian 13; other distributions are not tested. `sudo apt remove soundsync-gui` uninstalls it; `~/.config/soundsync` keeps your settings until you delete it.
+It appears as **Soundsync** in the applications menu and pulls in GTK 4 and WebKitGTK 6.0. It is built for Debian 13 and tested on Ubuntu 24.04, where it adds an AppArmor profile that lets WebKitGTK sandbox the window; other distributions are not tested. `sudo apt remove soundsync-gui` uninstalls it; `~/.config/soundsync` keeps your settings until you delete it.
 
 ### Command line
 
