@@ -90,7 +90,7 @@ jobs:
             debian:trixie@sha256:2dc419c6d7fe3dad0a2f9fd469c34cc90b0f9ba642d8fde837fe3d7d34a0e7f1 \
             bash -c 'apt-get update -qq &&
               apt-get install -y -qq --no-install-recommends ca-certificates build-essential pkg-config \
-                libgtk-4-dev libwebkitgtk-6.0-dev nodejs npm wixl >/dev/null &&
+                libgtk-4-dev libwebkitgtk-6.0-dev nodejs npm wixl apparmor >/dev/null &&
               gui/build/package.sh "$TAG" dist --smoke'
 
       - name: checksums

@@ -1,0 +1,12 @@
+# Ubuntu 23.10+ blocks unprivileged user namespaces unless a profile allows
+# them, and WebKitGTK's sandbox (bwrap) needs one: without this the app
+# aborts at start. Unconfined otherwise, like Ubuntu's own profiles for
+# WebKitGTK apps.
+abi <abi/4.0>,
+include <tunables/global>
+
+profile soundsync-gui /usr/bin/soundsync-gui flags=(unconfined) {
+  userns,
+
+  include if exists <local/soundsync-gui>
+}
